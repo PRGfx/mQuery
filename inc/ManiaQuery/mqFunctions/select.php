@@ -59,15 +59,15 @@ function mq_select($handler, $manialinkElement, $options = false)
 		$append.= '<quad class="mqSelectIcon" id="mqSelectIcon'.$uses.'" posn="'.$corners[1][0].' '.$corners[1][1].' '.$manialinkElement->get("z").'" scriptevents="1" />';
 	}
 		$y = $corners[2][1]-1;
-		$bgHeight = count($data) * 3 + 1;
+		$bgHeight = count($data) * 4 + 1;
 		if($y - $bgHeight < -90)
-			$y = $corners[0][1] + $bgHeight + 1;
+			$y = $corners[0][1] + $bgHeight + 3;
 		$append.= '<frame id="mqSelectOptions'.$uses.'" posn="'.$corners[0][0].' '.$y.' 60" hidden="1" >
 		<quad posn="0 0 0" class="mqSelectBg" sizen="'.$width.' '.$bgHeight.'" action="1" />';
 		$n = 0;
 		foreach ($data as $k => $value) {
 			$id = 'mqSelect'.$uses.'Option'.$n;
-			$append.= '<label text="'.$value.'" sizen="'.($width-2).' 2" class="mqSelectOption" posn="1 '.(-$n*3-1).' 1" id="'.$id.'" scriptevents="1" />';
+			$append.= '<label text="'.$value.'" sizen="'.($width-2).' 2" class="mqSelectOption" posn="1 '.(-$n*4-1).' 1" id="'.$id.'" scriptevents="1" />';
 			if(isset($options->onSelect))
 				$scriptHandler->addMouseClickEvent($id, 'mqSelectHide(); mqSelectInsert'.$uses.'("'.$uses.'", "'.$value.'", "'.$entryId.'", "'.$labelId.'");');
 			else

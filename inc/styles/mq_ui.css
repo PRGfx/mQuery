@@ -1,0 +1,26 @@
+.mq_ui_radiobutton_checked {
+	image: ./img/mq_ui/radiobutton_3.png;
+	sizen: 5 5;
+}
+.mq_ui_radiobutton_unchecked {
+	image: ./img/mq_ui/radiobutton_1.png;
+	imagefocus: ./img/mq_ui/radiobutton_2.png;
+	sizen: 5 5;
+}
+.mq_ui_checkbox_checked {
+	image: ./img/mq_ui/checkbox_3.png;
+	sizen: 5 5;
+}
+.mq_ui_checkbox_unchecked {
+	image: ./img/mq_ui/checkbox_1.png;
+	imagefocus: ./img/mq_ui/checkbox_2.png;
+	sizen: 5 5;
+}
+.mq_ui_switch_on {
+	image: ./img/mq_ui/switch_2.png;
+	sizen: 10 5;
+}
+.mq_ui_switch_off {
+	image: ./img/mq_ui/switch_1.png;
+	sizen: 10 5;
+}

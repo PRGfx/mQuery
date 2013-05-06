@@ -68,6 +68,7 @@ function mq_ui_checkbox($handler, $manialinkElement, $options = false)
 
 	$scriptHandler->addMouseClickEvent('mqCheckboxC'.$uses, $fnName."(False);");
 	$scriptHandler->addMouseClickEvent('mqCheckboxU'.$uses, $fnName."(True);");
+
 }
 
 function mq_ui_switch($handler, $manialinkElement, $options = false)
@@ -76,19 +77,25 @@ function mq_ui_switch($handler, $manialinkElement, $options = false)
 		return false;
 
 	$scriptHandler = $handler->scriptHandler();
-	$uses = $handler->getUses("mq_ui_checkbox");
 	if(!$options)
 		$options = new StdClass();
 	else
 		$options = \ManiaQuery\ManiaQuery::jsobj2php($options);
+	if(isset($options->classOn))
+		$options->classChecked = $options->classOn;
+	if(isset($options->classOff))
+		$options->classUnchecked = $options->classOff;
 	if(!isset($options->classChecked))
-		$options->classChecked = "mq_ui_checkbox_checked";
+		$options->classChecked = "mq_ui_switch_on";
 	if(!isset($options->classUnchecked))
-		$options->classUnchecked = "mq_ui_checkbox_unchecked";
+		$options->classUnchecked = "mq_ui_switch_off";
 	if(!isset($options->values))
-		$options->values = "[1, 0]";
-	$options->values = json_decode($options->values);
+		$options->values = '["enabled", "disabled"]';
 	if(!isset($options->checked))
 		$options->checked = false;
+	$options->uses = $handler->getUses("mq_ui_switch") + 50;
+	$options = \ManiaQuery\ManiaQuery::obj2str($options);
+	// echo $options;
+	mq_ui_checkbox($handler, $manialinkElement, $options);
 }
 ?>

@@ -8,6 +8,8 @@ function mq_contentStack($handler, $manialinkElement, $options = false)
 		$options = \ManiaQuery\ManiaQuery::jsobj2php($options);
 	if(!isset($options->start))
 		$options->start = 0;
+	if(!isset($options->play))
+		$options->play = true;
 	if(!isset($options->random))
 		$options->random = false;
 	if(!isset($options->ticks))
@@ -53,7 +55,7 @@ function mq_contentStack($handler, $manialinkElement, $options = false)
 	if($primUse) {
 		$type = $manialinkElement->getManiaScriptType();
 		$scriptHandler->declareGlobalVariable('Boolean', $playPause);
-		$scriptHandler->declareMainVariable('Boolean', $playPause, true, "True");
+		$scriptHandler->declareMainVariable('Boolean', $playPause, true, $options->play?"True":"False");
 		$scriptHandler->declareGlobalVariable('Boolean', $usesRand);
 		$scriptHandler->declareMainVariable('Boolean', $usesRand, true, ($options->random?"True":"False"));
 		$scriptHandler->declareGlobalVariable('Integer', $currentIndex);
