@@ -126,6 +126,18 @@ Thumbs.db
 # Folder config file
 Desktop.ini
 
+doc/
+bak/
+inc/Maniaplanet/
+inc/autoload.php
+inc/mq_tooltip.css
+inc/pgs/
+index.php
+log.txt
+*.mq
+select.css
+styles.css
+twitterFeed.css
 
 #############
 ## Python
