@@ -10,6 +10,8 @@ class ManialinkAnalizer {
 
 	private $script = "";
 
+	private $mQueryScript;
+
 	private $scriptFunctions = array();
 
 	private $stylesheets = array();
@@ -35,9 +37,16 @@ class ManialinkAnalizer {
 			$this->scriptFiles[] = $value[3];
 			$this->mlData = str_replace($value[0], "", $this->mlData);
 		}
-		$this->ManiaQuery = new \ManiaQuery\ManiaQuery($this);
+		// ManiaQueryScript
+		preg_match_all("/<mquery>(.*)<\\/mquery>/Uis", $this->mlData, $mqscripts);
+		$this->mQueryScript = implode("\n", $mqscripts[1]);
+		$this->mlData = preg_replace("/<mquery>(.*)<\/mquery>/Uis", "", $this->mlData);
+
+		$this->ManiaQuery = new \ManiaQuery\ManiaQuery($this, $this->mQueryScript);
+
 		// ManiaScript
 		preg_match_all('/<script([^>]*?)>(.*?)<\/script>/is', $this->mlData, $scriptBlocks);
+
 		// var_dump($scriptBlocks);
 		foreach($scriptBlocks[2] as $script)
 		{
@@ -71,7 +80,7 @@ class ManialinkAnalizer {
 	}
 
 	public function getElementsByClass($class) {
-		$regex = '/<([a-zA-Z0-9]+?)([^<>]*?)class=(\\"|\')\b'.$class.'\b\3([^>]*?)(\/>|>(.*?)<\/\1>)/is';
+		$regex = '/<([a-zA-Z0-9]+?)([^<>]*?)class=(\\"|\')([a-zA-Z0-9_ ]*)\b'.$class.'\b([a-zA-Z0-9_ ]*)\3([^>]*?)(\/>|>(.*?)<\/\1>)/is';
 		preg_match_all($regex, $this->mlData, $results, PREG_SET_ORDER);
 		// var_dump($results);
 		$return = array();
@@ -183,6 +192,7 @@ class ManialinkAnalizer {
 				$styleRessource+= readCss($value);
 			}
 		}
+		// var_dump($styleRessource);
 		foreach ($styleRessource as $ident => $values) {
 			$ident = explode(':', $ident, 2);
 			array_key_exists(1, $ident)?$mod = $ident[1]:$mod=null;

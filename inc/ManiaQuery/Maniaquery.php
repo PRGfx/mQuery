@@ -11,22 +11,27 @@ class ManiaQuery
 	private $availableFunctions = array();
 	private $calledFunctions = array();
 	
-	function __construct($ManialinkAnalizer, $script = false)
+	/**
+	 * ManiaQuery manager.
+	 * @param \ManialinkAnalysis\ManialinkAnalizer $ManialinkAnalizer Usually the ManialinkAnalizer
+	 *   instance working with this class.
+	 * @param string $additional Optional additional ManiaQuery script.
+	 */
+	public function __construct($ManialinkAnalizer, $additional = "")
 	{
 		$this->ManialinkAnalizer = $ManialinkAnalizer;
-		if ($script)
-			$this->input = $script;
-		else {
-			$scripts = $this->ManialinkAnalizer->scriptFiles();
-			foreach ($scripts as $script) {
-				if (!file_exists($script))
-					throw new \Exception("The script file '$script' could not be found!", 1);
-				elseif (!$data = file_get_contents($script))
-					throw new \Exception("The file '$script' could not be accessed!", 1);
-				else
-					$this->input.= $data;
-			}
+		$scripts = $this->ManialinkAnalizer->scriptFiles();
+		foreach ($scripts as $script) {
+			if (!file_exists($script))
+				throw new \Exception("The script file '$script' could not be found!", 1);
+			elseif (!$data = file_get_contents($script))
+				throw new \Exception("The file '$script' could not be accessed!", 1);
+			else
+				$this->input.= $data;
 		}
+		if (!empty($additional))
+			$this->input.= $additional;
+
 		$this->MScript = $this->ManialinkAnalizer->scriptHandler();
 		try {
 			$this->identifyFunctions();
@@ -35,6 +40,9 @@ class ManiaQuery
 		}
 	}
 
+	/**
+	 * capsels everything
+	 */
 	private function identifyFunctions() {
 		foreach (glob(dirname(__FILE__)."/mqFunctions/*.php") as $file)
 		{
@@ -64,13 +72,8 @@ class ManiaQuery
 			} catch (\Exception $e) {
 				$scriptHandler->addCodeToMain('log("'.$e->getMessage().'");');
 			}
-			// var_dump($var);
-			// echo'<hr>';
 		}
 
-		// $stacks = $ManiaqueryParser->parse();
-		// $stacks = array_values($stacks);
-		// print_r($stacks);
 		$stacks = $ManiaqueryParser->getJqueryStacks();
 		foreach ($stacks as $stack) {
 			$selector = $stack["selector"];
@@ -106,6 +109,10 @@ class ManiaQuery
 		}
 	}
 
+	/**
+	 * Enables multiple (espacially shorthand-)versions of data types.
+	 * e.g. int->Integer, quad->CMlQuad, string->Text etc.
+	 */
 	private function adjustType($type) {
 		if(empty($type))
 			return "Text";
@@ -121,6 +128,11 @@ class ManiaQuery
 		return ucfirst($type);
 	}
 
+	/**
+	 * Does conversion stuff in the output for ManiaScript code.
+	 * e.g. $type differs from the read type of $value, it will be fixed with
+	 * TextLib::ToText(), MathLib::ToInteger() etc.
+	 */
 	private function adjustValue(&$type, $value) {
 		if($value!=" ")
 			$value = trim($value);
@@ -165,6 +177,10 @@ class ManiaQuery
 		return $value;
 	}
 
+	/**
+	 * Increases the use-counter of a function.
+	 * @return int Number of uses of the function.
+	 */
 	private function useFn($mq_function) {
 		if(!array_key_exists($mq_function, $this->calledFunctions))
 			$this->calledFunctions[$mq_function] = 1;
@@ -173,6 +189,13 @@ class ManiaQuery
 		return $this->calledFunctions[$mq_function];
 	}
 
+	/**
+	 * Interprets the selector and returns the ManialinkElement objects
+	 * for .class, #id or type respectively.
+	 * Selectors don't support multiple idents (yet?)!
+	 *
+	 * @todo add support for multiple idents?
+	 */
 	private function getElements($selector)
 	{
 		$matches = array();
@@ -195,19 +218,38 @@ class ManiaQuery
 		}
 	}
 
+	/**
+	 * Checks wether or not a certain function has been defined.
+	 * @param string $function function name to check.
+	 * @return boolean True, if function is defined, false otherwise.
+	 */
 	private function mq_function_exists($function)
 	{
 		return in_array($function, $this->availableFunctions);
 	}
 
+	/**
+	 * @return the ManiscriptHandler for further access.
+	 */
 	public function scriptHandler() {
 		return $this->MScript;
 	}
 
+	/**
+	 * Calls the \ManialinkAnalysis\ManialinkAnalizer's updateElement method, replacing the old
+	 * ManialinkElement with the modified version.
+	 * @param \ManialinkAnalysis\ManialinkElement $element
+	 */
 	public function updateElement($element) {
 		$this->ManialinkAnalizer->updateElement($element);
 	}
 
+	/**
+	 * Calls the \ManialinkAnalysis\ManialinkAnalizer's append method, adding xml-code after the
+	 * opening tag of the element with $id if given, or at the end of the manialink otherwise.
+	 * @param string $code xml code to be appended.
+	 * @param string $id see method description :P
+	 */
 	public function append($code, $id = false) {
 		$this->ManialinkAnalizer->append($code, $id);
 	}
@@ -224,26 +266,47 @@ class ManiaQuery
 		}
 	}
 
+	/**
+	 * Returns how often the function has been called. Note that binding a function on a selector matching
+	 * multiple elements is respectively.
+	 */
 	public function getUses($function) {
 		if (array_key_exists($function, $this->calledFunctions))
 			return $this->calledFunctions[$function];
 		return 0;
 	}
 
+	/**
+	 * @param string Object in javascript notation
+	 * @return \StdClass Object of an object in javascript notation (fixing some errors of json_decode)
+	 */
 	public static function jsobj2php($obj) {
 		return ManiaqueryParser::parseObj($obj);
-		$obj = preg_replace('/^(\s*)?(\w+): /m', '"\2": ', $obj);
+		/* $obj = preg_replace('/^(\s*)?(\w+): /m', '"\2": ', $obj);
 		$obj = preg_replace('/;$/s', '', $obj);
-		return json_decode($obj);
+		return json_decode($obj); */
 	}
 
+	/**
+	 * @param \StdClass Php object to encode
+	 * @return string Adjusted version of json_encode
+	 */
 	public static function obj2str($obj) {
 		$str = json_encode($obj);
-		$str = preg_replace('/\"([^\"]*)\":/','\1:', $str);
+		$str = preg_replace('/\"([^\"]*)\":/','\1: ', $str);
+		$str = preg_replace('/\"(function\(([^)]*)\)\s*?\{(.*)})\"/s', '\1', trim($str));
+		preg_match_all('/\"(\[(.*)\])\"/s', $str, $arrays, PREG_SET_ORDER);
+		foreach($arrays as $a) {
+			$str = str_replace($a[0], '['.stripslashes($a[2]).']', $str);
+		}
+		$str = str_replace(array('\n', '\t', '\r'), '', $str);
 		return $str;
 	}
 }
 
+/**
+ * Somehow required, didn't want to adjust stuff :D
+ */
 function is_in_array($array,$index){
 	if (is_array($array)){
 		if (array_key_exists($index,$array)){
