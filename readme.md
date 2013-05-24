@@ -25,4 +25,8 @@ $MLDoc->output();											// Output formatted manialink
 ```
   
 In the manialink you can declare stylesheet files with `<style href="*[filename.css]*" />`.
-mQuery code files can be included with `<script src="*[scriptfile.whatever]*" />`.
+mQuery code files can be included with `<script src="*[scriptfile.whatever]*" />` or written within `<mquery></mquery>`blocks.
+
+Version
+----
+0.4 alpha
