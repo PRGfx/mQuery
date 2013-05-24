@@ -6,6 +6,9 @@ require_once('inc/ManiaQuery/ManiascriptHandler.php');
 
 class ManialinkAnalizer {
 
+	/**
+	 * The manialink code passed to the class
+	 */
 	private $mlData;
 
 	private $script = "";
@@ -63,14 +66,26 @@ class ManialinkAnalizer {
 		return $this;
 	}
 
+	/**
+	 * @return array All links to files given in <style href="(.*)" /> somewhere in the manialink
+	 */
 	public function scriptFiles() {
 		return $this->scriptFiles;
 	}
 
+	/**
+	 * Adds a stylesheet file as ressource.
+	 * @param string $file Path for a stylesheet file.
+	 */
 	public function addStyleSheet($file) {
 		$this->stylesheets[] = $file;
 	}
 
+	/**
+	 * Returns the first ManialinkElement with the id-attribute matching $id.
+	 * @param string $id Id-attribute to search for.
+	 * @return ManialinkElement matching $id.
+	 */
 	public function getElementById($id) {
 		$regex = '/<([a-zA-Z0-9]+?)([^<>]*?)id=(\\"|\')('.$id.')\3(.*?)(\/>|([^(<\/)]*?)<\/\1>)/is';
 		preg_match($regex, $this->mlData, $result);
@@ -79,6 +94,12 @@ class ManialinkAnalizer {
 		return null;
 	}
 
+	/**
+	 * Returns the ManialinkElements with the class-attribute matching $class.
+	 * Also matches if multiple classes are given in an element.
+	 * @param string $class Class-attribute to search for.
+	 * @return array ManialinkElements matching $class.
+	 */
 	public function getElementsByClass($class) {
 		$regex = '/<([a-zA-Z0-9]+?)([^<>]*?)class=(\\"|\')([a-zA-Z0-9_ ]*)\b'.$class.'\b([a-zA-Z0-9_ ]*)\3([^>]*?)(\/>|>(.*?)<\/\1>)/is';
 		preg_match_all($regex, $this->mlData, $results, PREG_SET_ORDER);
@@ -95,6 +116,11 @@ class ManialinkAnalizer {
 		return $return;
 	}
 
+	/**
+	 * Returns all ManialinkElements of type $tag.
+	 * @param string $tag Element type searched for.
+	 * @return array ManialinkElements of type $tag.
+	 */
 	public function getElementsByTag($tag) {
 		$regex = '/<('.$tag.') ([^<>]*?)(\/>|([^(<\/)]*?)<\/\1>)/Uis';
 		preg_match_all($regex, $this->mlData, $results, PREG_SET_ORDER);
@@ -106,6 +132,9 @@ class ManialinkAnalizer {
 		return $return;
 	}
 
+	/**
+	 * development stopped
+	 */
 	public function scriptFunctions() {
 		$regex = '/(((Text|Void|Real|Integer|(CMl|CGameManialink)[a-zA-Z0-9]*) ([_a-zA-Z][a-zA-Z0-9_]*))|main) ?\((.*?)\) ?\{(.*?)\}/s';
 		preg_match_all($regex, $this->script, $scriptFunctions, PREG_SET_ORDER);
@@ -125,10 +154,18 @@ class ManialinkAnalizer {
 		return $this->scriptFunctions;
 	}
 
+	/**
+	 * @return The Maniascript handler for further use.
+	 */
 	public function scriptHandler() {
 		return $this->Maniascript;
 	}
 
+	/**
+	 * Adds code to the manialink output at the end of the manialink OR after a manialinkelement if it's id is given.
+	 * @param string $string Code to be added.
+	 * @param string $id If given, $string will be added after the opening tag (frames) of a ManialinkElement with id $id.
+	 */
 	public function append($string, $id="") {
 		if(empty($id)){
 			$this->mlData = preg_replace('/<\/manialink>/i', $string . "\n</manialink>", $this->mlData);
@@ -138,6 +175,11 @@ class ManialinkAnalizer {
 		}
 	}
 
+	/**
+	 * Replaces an Element with it's new version.
+	 * Give a ManialinkElement as only parameter and it will do everything alone,
+	 * give two xml strings as parameters to replace the first by the second.
+	 */
 	public function updateElement($old, $new = null) {
 		if($old == null) {
 			throw new \Exception("You have to insert the old element!", 1);
@@ -156,24 +198,38 @@ class ManialinkAnalizer {
 		return $this;
 	}
 
+	/**
+	 * Replaces $old by $new in the manialink.
+	 */
 	public function update($old, $new) {
 		if(str_replace($old, $new, $this->mlData))
 			return true;
 		return false;
 	}
 
+	/**
+	 * Removes a string from the manilink.
+	 * @param string $string Can either be a element id or a xml tag.
+	 */
 	public function removeElement($string) {
-		if($this->isTag($string))
+		if(!$this->isTag($string))
 			$string = $this->getElementById($string)->toString();
 		$this->updateElement($string, "");
 	}
 
+	/**
+	 * @return boolean True if $string starts and ends like a xml tag, false otherwise.
+	 */
 	private function isTag($string) {
 		if(preg_match('/^<(.*)\/?>$/Us', $string))
 			return true;
 		return false;
 	}
 
+	/**
+	 * Outputs the final rendered manialink.
+	 * @param boolean $return Wether or not to return or just output the rendered manialink.
+	 */
 	public function output($return = false) {
 		$result = str_replace('</manialink>', "<script>\n<!--\n" . $this->Maniascript->build() . "\n--></script>\n</manialink>", $this->mlData);
 		if($return)
@@ -257,6 +313,11 @@ class ManialinkAnalizer {
 		}
 	}
 
+	/**
+	 * Removes ManiaPlanet formating tags from a string.
+	 * @param string $str String to remove formats from.
+	 * @param string $type give something out of "links, colors, formats" in a string to strip the respective tags
+	 */
 	public static function strip_tags_tm($str, $type) {
 		if(preg_match('/links?/i', $type) || preg_match('/all/i', $type))
 			$str = preg_replace('/\$(l|h|p)(\[(.*?)\])?(.*?)(\$\1)?/is', '\4', $str);

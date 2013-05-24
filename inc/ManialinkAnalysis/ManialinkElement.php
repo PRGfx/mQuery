@@ -215,11 +215,17 @@ class ManialinkElement {
 		return $this;
 	}
 
+	/**
+	 * Sets 'hidden' with value "1"
+	 */
 	public function hide() {
 		$this->set("hidden", "1");
 		return $this;
 	}
 
+	/**
+	 * Unsets the 'hidden' attribute
+	 */
 	public function show() {
 		if($this->get("hidden") == "1")
 			$this->set("hidden", "");
@@ -403,6 +409,9 @@ class ManialinkElement {
 		return $result;
 	}
 
+	/**
+	 * @return string "CMl(Label|Quad|...)"
+	 */
 	public function getManiaScriptType() {
 		switch ($this->type) {
 			default:
@@ -411,12 +420,19 @@ class ManialinkElement {
 		}
 	}
 
+	/**
+	 * @param string $name Name to declare as variable for this element.
+	 * @return string "declare CMl... <name> <=> (Page.GetFirstChild(<id>) as CMl...);"
+	 */
 	public function getManiaScriptDeclare($name) {
 		if(!isset($this->id))
 			return false;
 		return 'declare ' . $this->getManiaScriptType() . ' ' . $name .' <=> (Page.GetFirstChild("'.$this->id.'") as ' . $this->getManiaScriptType() . ');';
 	}
 
+	/**
+	 * @param string $string Output to be added right after this manialinkElement in the final output.
+	 */
 	public function append($string) {
 		$this->toAppend.=$string;
 		return $this;
