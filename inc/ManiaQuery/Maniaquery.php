@@ -61,20 +61,63 @@ class ManiaQuery
 		$variables = array();
 		$variables = $ManiaqueryParser->getVariables();
 		foreach($variables as $var) {
-			$var["type"] = $this->adjustType($var["type"]);
-			if($var["value"] != "")
-				$var["value"] = $this->adjustValue($var["type"], $var["value"]);
-			if((bool) $var["global"] === true) {
-				$scriptHandler->declareGlobalVariable($var["type"], $var["name"]);
+			if(preg_match('/^\$/', trim($var["value"])))
+				$var["type"] = "CMlControl";
+			else {
+				$var["type"] = $this->adjustType($var["type"]);
+				if($var["value"] != "")
+					$var["value"] = $this->adjustValue($var["type"], $var["value"]);
 			}
-			try {
-				$scriptHandler->declareMainVariable($var["type"], $var["name"], (bool) $var["global"], $var["value"]);
-			} catch (\Exception $e) {
-				$scriptHandler->addCodeToMain('log("'.$e->getMessage().'");');
+			if($var["type"] == "CMlControl")
+			{
+				$elements = $this->getElements($var["value"]);
+				$selectorContent = preg_replace('/\$\((\"|\')(\.|#)?(.*)\1\)/', '\3', trim($var["value"]));
+				if(count($elements) > 1) {
+					$var["type"].= '[]';
+					$declared = array();
+					foreach ($elements as $key => $element) {
+						$varN = "mqAutoDec_" . $selectorContent . $key;
+						$declared[] = $varN;
+						if($element->get("id")==null)
+							$element->set("id", $varN);
+						$scriptHandler->addCodeToMain($element->getManiaScriptDeclare($varN));
+					}
+					$value = ' = ['.implode(', ', $declared).'];';
+				} elseif (count($elements == 1)) {
+					$element = $elements[0];
+					$varN = "mqAutoDec_" . $selectorContent;
+					$type = "CMlControl";
+					if($element->get("id")==null)
+						$element->set("id", $varN);
+					$value = explode('<=>', $element->getManiaScriptDeclare($var["name"]));
+					$value = ' <=> ' . trim($value[1]);
+				}
+				if((bool) $var["global"] === true) {
+					$scriptHandler->addCodeBeforeMain("declare " . $var["type"] . " " . $var["name"] . ";");
+					$scriptHandler->addCodeToMain($var["name"] .$value);
+				}else{
+					$scriptHandler->addCodeToMain("declare " . $var["type"] . " " . $var["name"] .$value);
+				}
+			}else{
+				if((bool) $var["global"] === true) {
+					$scriptHandler->declareGlobalVariable($var["type"], $var["name"]);
+					$scriptHandler->addCodeBeforeMain("declare " . $var["type"] . " " . $var["name"] . ";");
+					try {
+						$scriptHandler->declareMainVariable($var["type"], $var["name"], false, $var["value"]);
+					} catch (\Exception $e) {
+						$scriptHandler->addCodeToMain('log("'.$e->getMessage().'");');
+					}
+				}
+				try {
+					$scriptHandler->declareMainVariable($var["type"], $var["name"], (bool) $var["global"], $var["value"]);
+				} catch (\Exception $e) {
+					$scriptHandler->addCodeToMain('log("'.$e->getMessage().'");');
+				}
 			}
 		}
 
 		$stacks = $ManiaqueryParser->getJqueryStacks();
+		// var_dump($stacks);
 		foreach ($stacks as $stack) {
 			$selector = $stack["selector"];
 			foreach ($stack["functions"] as $function) {
@@ -84,9 +127,10 @@ class ManiaQuery
 				} else {
 					$mq_function = "mq_" . $function["name"];
 					$elements = $this->getElements($selector);
+					/* $selector == '$' for global function calls */
+					/* not implemented yet! */
 					if(empty($elements))
 						throw new \Exception("Notice: No elements matching '".addslashes($selector)."' found!", 1);
-						// $scriptHandler->addCodeToMain('log("No elements matching \''.addslashes($selector).'\' found!");');
 					foreach($elements as $key=>$element) {
 						if(!$element instanceof \ManialinkAnalysis\ManialinkElement)
 							continue;
@@ -154,25 +198,6 @@ class ManiaQuery
 				$value.= "TextLib::ToInteger(".$value.")";
 			if($type == "Integer" && gettype($value) == "double")
 				$value.= "MathLib::NearestInteger(".$value.")";
-		} else {
-			$elements = $this->getElements($value);
-			if(count($elements) > 1) {
-				$type = $elements[0]->getManiaScriptType() . '[Integer]';
-				$declared = array();
-				foreach ($elements as $key => $element) {
-					$varN = "mqAutoDec_" . preg_replace('/\$\((\"|\')(\.|#)?(.*)\1\)/', '\3', $value) . $key;
-					$declared[] = $varN;
-					if($element->get("id")==null)
-						$element->set("id", $varN);
-					$scriptHandler->addCodeToMain($element->getManiaScriptDeclare($varN));
-				}
-				$value = '['.implode(', ', $declared).']';
-			}
-			elseif (count($elements <= 0)) {
-				return $value;
-			}
-			else
-				$type = $elements[0]->getManiaScriptType();
 		}
 		return $value;
 	}
