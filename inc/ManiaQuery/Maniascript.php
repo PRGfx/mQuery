@@ -22,6 +22,7 @@ class Maniascript
 	public $subEvents = array();
 	public $afterMainContent = array();
 	public $finalResult = "";
+	public $beforeMainContent = "";
 	
 	/**
 	 * Declares a variable outside of every function. It will be declared 'for Page'.
@@ -175,6 +176,14 @@ class Maniascript
 	}
 	
 	/**
+	 * Adds global code before the main() method.
+	 */
+	public function addCodeBeforeMain($code)
+	{
+		$this->beforeMainContent.= $code;
+	}
+	
+	/**
 	 * Puts everything together.
 	 *
 	 * @param boolean $return Decide if this function directly outputs the ManiaScript or just returns it.
@@ -191,6 +200,7 @@ class Maniascript
 			}
 			$this->finalResult.=' ';
 		}
+		$this->finalResult.=$this->beforeMainContent;
 		// Tom: 2. funktion
 		$this->finalResult.='
 		Integer strlen(Text text)
