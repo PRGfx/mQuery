@@ -132,7 +132,7 @@ class ManiaQuery
 					}
 				}
 				try {
-					$scriptHandler->declareMainVariable($var["type"], $var["name"], (bool) $var["global"], $var["value"]);
+					$scriptHandler->declareMainVariable($var["type"], $var["name"], (bool) $var["global"], $var["value"], true);
 				} catch (\Exception $e) {
 					$scriptHandler->addCodeToMain('log("'.$e->getMessage().'");');
 				}
