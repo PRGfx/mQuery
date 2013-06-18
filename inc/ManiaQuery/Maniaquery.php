@@ -10,6 +10,8 @@ class ManiaQuery
 	private $MScript;
 	private $availableFunctions = array();
 	private $calledFunctions = array();
+	private $variables;
+	private $CustomClass;
 	
 	/**
 	 * ManiaQuery manager.
@@ -38,6 +40,7 @@ class ManiaQuery
 		} catch (\Exception $e) {
 			$this->MScript->addCodeToMain('log("'.$e->getMessage().'");');
 		}
+		$this->CustomClass = new CustomClass($this);
 	}
 
 	/**
@@ -60,9 +63,16 @@ class ManiaQuery
 		// variables
 		$variables = array();
 		$variables = $ManiaqueryParser->getVariables();
+		// var_dump($variables);
 		foreach($variables as $var) {
-			if(preg_match('/^\$/', trim($var["value"])))
+			$var["value"] = trim($var["value"]);
+			if(preg_match('/^\$/', $var["value"]))
 				$var["type"] = "CMlControl";
+			elseif (preg_match('/new ([A-Z].*)\((.*?)\)/', $var["value"], $class)) {
+				$var["type"] = "Class";
+				$var["class"] = $class[1];
+				$var["attr"] = $class[2];
+			}
 			else {
 				$var["type"] = $this->adjustType($var["type"]);
 				if($var["value"] != "")
@@ -71,7 +81,7 @@ class ManiaQuery
 			if($var["type"] == "CMlControl")
 			{
 				$elements = $this->getElements($var["value"]);
-				$selectorContent = preg_replace('/\$\((\"|\')(\.|#)?(.*)\1\)/', '\3', trim($var["value"]));
+				$selectorContent = preg_replace('/\$\((\"|\')(\.|#)?(.*)\1\)/', '\3', $var["value"]);
 				if(count($elements) > 1) {
 					$var["type"].= '[]';
 					$declared = array();
@@ -98,6 +108,20 @@ class ManiaQuery
 				}else{
 					$scriptHandler->addCodeToMain("declare " . $var["type"] . " " . $var["name"] .$value);
 				}
+			}elseif ($var["type"] == "Class") {
+				// $scriptHandler->addCodeToMain('log("'.$var["class"].'");');
+				// initiate class
+				$fnname = $var["class"].'_construct';
+				if($scriptHandler->isFunction($fnname))
+				{
+					$id = $var["name"];
+					$binder = new \ManialinkAnalysis\ManialinkElement('<quad sizen="0 0" />');
+					$binder->set("id", $id)->set("hidden", "1");
+					$this->ManialinkAnalizer->append($binder->toString());
+					$scriptHandler->addCodeBeforeMain('declare CMlControl '.$id.';');
+					$scriptHandler->addCodeToMain($id.' <=> (Page.GetFirstChild("'.$id.'") as CMlControl);');
+				}
+				// var_dump($var);
 			}else{
 				if((bool) $var["global"] === true) {
 					$scriptHandler->declareGlobalVariable($var["type"], $var["name"]);
@@ -114,40 +138,75 @@ class ManiaQuery
 					$scriptHandler->addCodeToMain('log("'.$e->getMessage().'");');
 				}
 			}
+			$this->variables[] = $var;
 		}
+		// var_dump($this->variables);
 
 		$stacks = $ManiaqueryParser->getJqueryStacks();
 		// var_dump($stacks);
 		foreach ($stacks as $stack) {
 			$selector = $stack["selector"];
-			foreach ($stack["functions"] as $function) {
-				if (!$this->mq_function_exists($function["name"])) {
-					throw new \Exception("Error: '".$function["name"]."()' is not a valid function!", 1);
+			if(strpos($selector, '(') === false && !empty($selector) && strlen($selector) > 1)
+			{
+				$selector = substr($selector, 1);
+				if($this->varDefined($selector, $stack["init"]) === false){
+					throw new \Exception("Error: the variable '".$selector."' is not defined!", 1);
 					continue;
-				} else {
-					$mq_function = "mq_" . $function["name"];
-					$elements = $this->getElements($selector);
-					/* $selector == '$' for global function calls */
-					/* not implemented yet! */
-					if(empty($elements))
-						throw new \Exception("Notice: No elements matching '".addslashes($selector)."' found!", 1);
-					foreach($elements as $key=>$element) {
-						if(!$element instanceof \ManialinkAnalysis\ManialinkElement)
-							continue;
-						$this->prepareAttributes($function["parameters"]);
-						if (empty($function["parameters"]))
-							$function["parameters"] = array();
-						$parameters = array_merge(array($this, $element), $function["parameters"]);
-						$uses = $this->useFn($mq_function);
-						if($uses == 1 && file_exists(dirname(__FILE__)."/mqStyles/".$mq_function.".css"))
-							$this->ManialinkAnalizer->addStyleSheet(dirname(__FILE__)."/mqStyles/".$mq_function.".css");
-						try {
-							$new = call_user_func_array($mq_function, $parameters);
-						} catch (\Exception $e) {
-							throw new \Exception($e->getMessage(), 1);
+				}else{
+					$var = $this->variables[$this->varDefined($selector, -1)];
+					$selector = $var["value"];
+				}
+			}else{
+				$var = null;
+			}
+			foreach ($stack["functions"] as $function) {
+				if(isset($var) && $var["type"] == "Class")
+				{
+					if(!array_key_exists("parameters", $function))
+						$function["parameters"] = array();
+					$p = array_reverse($function["parameters"]);
+					$p[] = $var["name"];
+					$p = array_reverse($p);
+					$fnname = $var["class"] .'_' . $function["name"];
+					$fncall = $fnname . '('.implode(', ', $p).');';
+					# no parameters
+					$reg1 = '/\$('.$var["name"].')\.([a-z0-9A-Z_]*)\(\)/';
+					$reg2 = $var["class"] . '_\2(\1)';
+					$scriptHandler->addReplace(array($reg1, $reg2));
+					# with parameters
+					$reg1 = '/\$('.$var["name"].')\.([a-z0-9A-Z_]*)\((.+?)\)/';
+					$reg2 = $var["class"] . '_\2(\1, \3)';
+					$scriptHandler->addReplace(array($reg1, $reg2));
+					// var_dump($fncall);
+				}else{
+					if (!$this->mq_function_exists($function["name"])) {
+						throw new \Exception("Error: '".$function["name"]."()' is not a valid function!", 1);
+						continue;
+					} else {
+						$mq_function = "mq_" . $function["name"];
+						$elements = $this->getElements($selector);
+						/* $selector == '$' for global function calls */
+						/* not implemented yet! */
+						if(empty($elements))
+							throw new \Exception("Notice: No elements matching '".addslashes($selector)."' found!", 1);
+						foreach($elements as $key=>$element) {
+							if(!$element instanceof \ManialinkAnalysis\ManialinkElement)
+								continue;
+							$this->prepareAttributes($function["parameters"]);
+							if (empty($function["parameters"]))
+								$function["parameters"] = array();
+							$parameters = array_merge(array($this, $element), $function["parameters"]);
+							$uses = $this->useFn($mq_function);
+							if($uses == 1 && file_exists(dirname(__FILE__)."/mqStyles/".$mq_function.".css"))
+								$this->ManialinkAnalizer->addStyleSheet(dirname(__FILE__)."/mqStyles/".$mq_function.".css");
+							try {
+								$new = call_user_func_array($mq_function, $parameters);
+							} catch (\Exception $e) {
+								throw new \Exception($e->getMessage(), 1);
+							}
 						}
+						$elements = null;
 					}
-					$elements = null;
 				}
 			}
 		}
@@ -326,6 +385,16 @@ class ManiaQuery
 		}
 		$str = str_replace(array('\n', '\t', '\r'), '', $str);
 		return $str;
+	}
+
+	private function varDefined($variable, $pos){
+		foreach ($this->variables as $key=>$var) {
+			if($var["name"] == $variable && ($var["init"] < $pos || $pos < 0))
+			{
+				return $key;
+			}
+		}
+		return false;
 	}
 }
 

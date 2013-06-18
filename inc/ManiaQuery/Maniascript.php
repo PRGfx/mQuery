@@ -23,6 +23,7 @@ class Maniascript
 	public $afterMainContent = array();
 	public $finalResult = "";
 	public $beforeMainContent = "";
+	private $replaces = array();
 	
 	/**
 	 * Declares a variable outside of every function. It will be declared 'for Page'.
@@ -181,6 +182,11 @@ class Maniascript
 	public function addCodeBeforeMain($code)
 	{
 		$this->beforeMainContent.= $code;
+	}
+
+	public function addReplace(array $replacer)
+	{
+		$this->replaces[] = $replacer;
 	}
 	
 	/**
@@ -351,8 +357,12 @@ class Maniascript
 		$this->finalResult.= "PassedTime = CurrentTime-lastTime; lastTime = CurrentTime;";
 		$this->finalResult.="yield;
 		}}";
-	$this->finalResult=str_replace(array("\r","\n"),array("",""),$this->finalResult);
-	$this->finalResult = preg_replace('/\s+/', ' ', $this->finalResult);
+	// $this->finalResult=str_replace(array("\r","\n"),array("",""),$this->finalResult);
+	// $this->finalResult = preg_replace('/\s+/', ' ', $this->finalResult);
+	foreach ($this->replaces as $replace) {
+	// var_dump($replace[0], $replace[1]);
+		$this->finalResult = preg_replace($replace[0].'s', $replace[1], $this->finalResult);
+	}
 	if($return)
 		return $this->finalResult;
 	echo $this->finalResult;

@@ -109,6 +109,10 @@ class ManiaqueryParser {
 								case (is_numeric($char) ? true : false):
 									$state = 0;
 									break;
+								case (preg_match('/[a-zA-Z0-9_]/', $char) ? true : false):
+									$state = "sel5";
+									$match["selector"].= $char;
+									break;
 								default:
 									$match["selector"].= $char;
 									break;
@@ -125,6 +129,10 @@ class ManiaqueryParser {
 									$state = "sel2";
 									$match["selector"].= $char;
 									break;
+								case (preg_match('/[a-zA-Z0-9_]/', $char) ? true : false):
+									$state = "sel4";
+									$match["selector"].= $char;
+									break;
 								default:
 									$state = "0";
 									break;
@@ -135,6 +143,33 @@ class ManiaqueryParser {
 								$state = "fn1";
 							else
 								$state = "0";
+						break;
+						case "sel4":
+							switch ($char) {
+								case ')':
+									$state = "sel3";
+									$match["selector"].= $char;
+									break;
+								case (preg_match('/[a-zA-Z0-9_]/', $char) ? true : false):
+									$match["selector"].= $char;
+									break;
+								default:
+									$state = "0";
+									break;
+							}
+						break;
+						case "sel5":
+							switch ($char) {
+								case (preg_match('/[a-zA-Z0-9_]/', $char) ? true : false):
+									$match["selector"].= $char;
+									break;
+								case ".":
+									$state = "fn1";
+									break;
+								default:
+									$state = "0";
+									break;
+							}
 						break;
 						case "fn1":
 							if (preg_match('/[a-z_]/i', $char)) {
@@ -183,6 +218,7 @@ class ManiaqueryParser {
 							elseif ($char == ";") {
 								$state = "0";
 								$match["raw"].= $char;
+								$match["init"] = $start;
 								$jqueryStacks[$start] = $match;
 							}
 							else
@@ -241,6 +277,7 @@ class ManiaqueryParser {
 							} elseif ($char == "=") {
 								$state = "vv";
 							} elseif ($char == ";") {
+								$match["init"] = $start;
 								$this->variables[] = $match;
 								$state = "0";
 							} else
@@ -248,6 +285,7 @@ class ManiaqueryParser {
 						break;
 						case "vv":
 							if ($char == ";") {
+								$match["init"] = $start;
 								$this->variables[] = $match;
 								$state = "0";
 							} else
