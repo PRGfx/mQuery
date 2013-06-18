@@ -40,7 +40,6 @@ class ManiaQuery
 		} catch (\Exception $e) {
 			$this->MScript->addCodeToMain('log("'.$e->getMessage().'");');
 		}
-		$this->CustomClass = new CustomClass($this);
 	}
 
 	/**
@@ -125,7 +124,7 @@ class ManiaQuery
 			}else{
 				if((bool) $var["global"] === true) {
 					$scriptHandler->declareGlobalVariable($var["type"], $var["name"]);
-					$scriptHandler->addCodeBeforeMain("declare " . $var["type"] . " " . $var["name"] . ";");
+					// $scriptHandler->addCodeBeforeMain("declare " . $var["type"] . " " . $var["name"] . ";");
 					try {
 						$scriptHandler->declareMainVariable($var["type"], $var["name"], false, $var["value"]);
 					} catch (\Exception $e) {
@@ -252,11 +251,11 @@ class ManiaQuery
 			if($type == "Real" && gettype($value) == "integer")
 				$value.= ".0";
 			if($type == "Real" && gettype($value) == "string")
-				$value.= "TextLib::ToReal(".$value.")";
+				$value = "TextLib::ToReal(".$value.")";
 			if($type == "Integer" && gettype($value) == "string")
-				$value.= "TextLib::ToInteger(".$value.")";
+				$value = "TextLib::ToInteger(".$value.")";
 			if($type == "Integer" && gettype($value) == "double")
-				$value.= "MathLib::NearestInteger(".$value.")";
+				$value = "MathLib::NearestInteger(".$value.")";
 		}
 		return $value;
 	}
