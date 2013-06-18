@@ -62,7 +62,6 @@ class ManiaQuery
 		// variables
 		$variables = array();
 		$variables = $ManiaqueryParser->getVariables();
-		// var_dump($variables);
 		foreach($variables as $var) {
 			$var["value"] = trim($var["value"]);
 			if(preg_match('/^\$/', $var["value"]))
@@ -73,10 +72,11 @@ class ManiaQuery
 				$var["attr"] = $class[2];
 			}
 			else {
-				$var["type"] = $this->adjustType($var["type"]);
+				$var["type"] = $this->adjustType($var["type"], $var["value"]);
 				if($var["value"] != "")
 					$var["value"] = $this->adjustValue($var["type"], $var["value"]);
 			}
+			// var_dump($var);
 			if($var["type"] == "CMlControl")
 			{
 				$elements = $this->getElements($var["value"]);
@@ -215,7 +215,15 @@ class ManiaQuery
 	 * Enables multiple (espacially shorthand-)versions of data types.
 	 * e.g. int->Integer, quad->CMlQuad, string->Text etc.
 	 */
-	private function adjustType($type) {
+	private function adjustType($type, $value="") {
+		if($value!=" ")
+			$value = trim($value);
+		if(is_numeric($value)){
+			if(preg_match('/\./', $value))
+				$type = "real";
+			else
+				$type = "int";
+		}
 		if(empty($type))
 			return "Text";
 		$type = strtolower($type);
