@@ -102,7 +102,7 @@ switch ($type) {
 	case 'arc':
 		imagefilledarc($im, $width/2, $height/2, $width-1, $height-1, -90+$rotation, $angle-90+$rotation, $color, IMG_ARC_PIE);
 		if(!$filled){
-			imagefilledarc($im, $width/2, $height/2, $width-1-$weight, $height-1-$weight, -90+$rotation, $angle-90+$rotation, $transparent, IMG_ARC_PIE);
+			imagefilledellipse($im, $width/2, $height/2, $width-1-$weight, $height-1-$weight, $transparent);
 		}
 		break;
 	
