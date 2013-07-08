@@ -363,8 +363,8 @@ class ManialinkElement {
 		$corners[1][1] = $corners[0][1];
 		$corners[2][0] = $corners[0][0];
 		$corners[2][1] = $corners[0][1] - $height;
-		$corners[2][0] = $corners[0][0] + $width;
-		$corners[2][1] = $corners[0][1] - $height;
+		$corners[3][0] = $corners[0][0] + $width;
+		$corners[3][1] = $corners[0][1] - $height;
 		return $corners;
 	}
 
