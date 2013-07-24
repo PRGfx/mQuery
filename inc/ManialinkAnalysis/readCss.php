@@ -1,22 +1,24 @@
 <?php
 /**
- * Reads out a css formatted file, given as string or file path. It will return every 
- * style attribute and the associated value as an array for every ident.
+ * Reads out a css formatted file, given as string or file path. It will return
+ * every style attribute and the associated value as an array for every ident.
  * It will not check for valid css attributes or values!
- * Every ident will return it´s associated configurations. Multiple idents per definition
- * will create multiple array keys!
+ * Every ident will return it´s associated configurations. Multiple idents
+ * per definition will create multiple array keys!
  *
  * @author Pepe R
  * @version 0.7
  * @param $file
- *     Can either be a valid path to a .css or .php file containing css-formatted
- *     text or a string with css-formatted style information
+ *     Can either be a valid path to a .css or .php file containing
+ *     css-formatted text or a string with css-formatted style information
  * @return Will return an array such as [ident] = array("modifier"=>"value");
- * @throws Exception when $file was interpreted as path and could not be found or
- *     could not be accessed.
+ * @throws Exception when $file was interpreted as path and could not be found 
+ *     or could not be accessed.
  */
-function readCss($file) {
-	if(substr($file, -4) == ".php" || substr($file, -4) == ".css" || substr($file, -5) == ".mlss") {
+function readCss($file)
+{
+	if (substr($file, -4) == ".php" 
+			|| substr($file, -4) == ".css" || substr($file, -5) == ".mlss") {
 		if(!file_exists($file))
 			throw new Exception("The file '$file' could not be found!", 1);
 		if(!$file = file_get_contents($file))
@@ -25,15 +27,13 @@ function readCss($file) {
 	$file = preg_replace('/\/\*(.*?)\*\//s', '', $file);
 	preg_match_all('/(.*?) ?\{(.*?)\}/s', $file, $styles, PREG_SET_ORDER);
 	$result = array();
-	foreach($styles as $style)
-	{
+	foreach ($styles as $style) {
 		$classes = explode(',', $style[1]);
 		foreach ($classes as $class) {
 			$class = trim($class);
 			$settings = explode(';', trim($style[2]));
 			$values = array();
-			foreach($settings as $setting)
-			{
+			foreach ($settings as $setting) {
 				if(empty($setting))
 					continue;
 				$setting = trim($setting);

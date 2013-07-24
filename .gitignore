@@ -134,9 +134,7 @@ inc/pgs/
 index.php
 log.txt
 *.mq
-select.css
-styles.css
-twitterFeed.css
+*.css
 logs.php
 
 #############

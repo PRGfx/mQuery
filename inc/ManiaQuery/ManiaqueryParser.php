@@ -1,25 +1,28 @@
 <?php
 namespace ManiaQuery;
 
-class ManiaqueryParser {
+class ManiaqueryParser
+{
 
 	private $in;
 
-	private $bracket_round = 0;
-	private $bracket_curly = 0;
-	private $bracket_square = 0;
-	private $string_delimiter = "";
+	private $bracketRound = 0;
+	private $bracketCurly = 0;
+	private $bracketSquare = 0;
+	private $stringDelimiter = "";
 
 	private $strings = array();
 	private $variables = array();
 	private $jqueryStacks = array();
 
-	public function __construct($input) {
+	public function __construct($input)
+	{
 		$this->in = $input;
 		$this->shortHand();
 	}
 
-	private function shortHand() {
+	private function shortHand()
+	{
 		$this->in = preg_replace('/substr\((.*)\)/s', 'TextLib::SubString(\1)', $this->in);
 		$this->in = preg_replace('/round\((.*)\)/s', 'MathLib::NearestInteger(\1)', $this->in);
 		$this->in = preg_replace('/ceil\((.*)\)/s', 'MathLib::CeilingInteger(\1)', $this->in);
@@ -27,11 +30,13 @@ class ManiaqueryParser {
 		$this->in = preg_replace('/toString\((.*)\)/is', 'TextLib::ToText(\1)', $this->in);
 	}
 
-	private function isString() {
-		return ($this->string_delimiter == "'" || $this->string_delimiter == '"');
+	private function isString()
+	{
+		return ($this->stringDelimiter == "'" || $this->stringDelimiter == '"');
 	}
 
-	public function parse() {
+	public function parse()
+	{
 		$jqueryStacks = array();
 		$variables = array();
 		$match = array();
@@ -44,32 +49,31 @@ class ManiaqueryParser {
 			if ($cursor >= 1)
 				$pred = $this->in[$cursor-1];
 			// no string
-			if ($this->string_delimiter == "") {
+			if ($this->stringDelimiter == "") {
 				// escaped?
-				if(!isset($pred) || $pred != "\\") {
+				if (!isset($pred) || $pred != "\\") {
 					if ($char == "'") {
-						$this->string_delimiter = "'";
+						$this->stringDelimiter = "'";
 						$this->strings[$cursor] = "";
-					}
-					elseif ($char == '"') {
-						$this->string_delimiter = '"';
+					} elseif ($char == '"') {
+						$this->stringDelimiter = '"';
 						$this->strings[$cursor] = "";
 					}
 					if($char == ".")
 						$dots++;
 					// brackets
 					if ($char == "(")
-						$this->bracket_round++;
+						$this->bracketRound++;
 					if ($char == ")")
-						$this->bracket_round--;
+						$this->bracketRound--;
 					if ($char == "[")
-						$this->bracket_square++;
+						$this->bracketSquare++;
 					if ($char == "]")
-						$this->bracket_square--;
+						$this->bracketSquare--;
 					if ($char == "{")
-						$this->bracket_curly++;
+						$this->bracketCurly++;
 					if ($char == "}")
-						$this->bracket_curly--;
+						$this->bracketCurly--;
 					// search for jquery stacks
 					switch ($state) {
 						case '0':
@@ -77,21 +81,21 @@ class ManiaqueryParser {
 							$start = $cursor;
 							$dots = 0;
 							$match["raw"] = "";
-							if($char == '$') {
+							if ($char == '$') {
 								$match["selector"] = $char;
 								$match["functions"] = array();
 								$fn = null;
 								$state = "sel";
 							}
-							if($char == 'g') {
+							if ($char == 'g') {
 								$match["global"] = "g";
 								$state = "g1";
 							}
-							if($char == 'v') {
+							if ($char == 'v') {
 								$match["global"] = false;
 								$state = "v1";
 							}
-							if(preg_match('/[gv]/', $char)) {
+							if (preg_match('/[gv]/', $char)) {
 								$match["name"] = "";
 								$match["value"] = "";
 								$match["type"] = "";
@@ -117,7 +121,7 @@ class ManiaqueryParser {
 									$match["selector"].= $char;
 									break;
 							}
-						break;
+							break;
 						case "sel2":
 							switch ($char) {
 								case ')':
@@ -137,13 +141,13 @@ class ManiaqueryParser {
 									$state = "0";
 									break;
 							}
-						break;
+							break;
 						case "sel3":
 							if ($char == ".")
 								$state = "fn1";
 							else
 								$state = "0";
-						break;
+							break;
 						case "sel4":
 							switch ($char) {
 								case ')':
@@ -157,7 +161,7 @@ class ManiaqueryParser {
 									$state = "0";
 									break;
 							}
-						break;
+							break;
 						case "sel5":
 							switch ($char) {
 								case (preg_match('/[a-zA-Z0-9_]/', $char) ? true : false):
@@ -170,7 +174,7 @@ class ManiaqueryParser {
 									$state = "0";
 									break;
 							}
-						break;
+							break;
 						case "fn1":
 							if (preg_match('/[a-z_]/i', $char)) {
 								$state = "fn2";
@@ -178,17 +182,17 @@ class ManiaqueryParser {
 							}
 							else
 								$state = "0";
-						break;
+							break;
 						case "fn2":
-							if (preg_match('/[a-z_0-9]/i', $char)){
+							if (preg_match('/[a-z_0-9]/i', $char)) {
 								$state = "fn2";
 								$fn["name"].= $char;
 							}
 							elseif ($char == "(")
-								$state = "param";
+							$state = "param";
 							else
 								$state = "0";
-						break;
+							break;
 						case "param":
 							if ($char == ")")
 								$state = "fn3";
@@ -196,26 +200,27 @@ class ManiaqueryParser {
 								$state = "p";
 								$fn["parameters"][] = $char;
 							}
-						break;
+							break;
 						case "p":
-							if ($this->bracket_round == 1 && $this->bracket_curly == 0 && $this->bracket_square == 0 && $char == ",") {
+							if ($this->bracketRound == 1 
+								&& $this->bracketCurly == 0	
+								&& $this->bracketSquare == 0 && $char == ",") {
 								$state = "param";
-							}
-							elseif ($char == ")" && $this->bracket_round == 0 && $this->bracket_curly == 0 && $this->bracket_square == 0) {
+							} elseif ($char == ")" && $this->bracketRound == 0 
+									&& $this->bracketCurly == 0 
+									&& $this->bracketSquare == 0) {
 								$state = "fn3";
-							}
-							else {
+							} else {
 								// $state = "p";
 								addToLastKey($fn["parameters"], $char);
 							}
-						break;
+							break;
 						case "fn3":
 							$match["functions"][] = $fn;
 							if ($char == ".") {
 								$state = "fn1";
 								$fn["parameters"] = null;
-							}
-							elseif ($char == ";") {
+							} elseif ($char == ";") {
 								$state = "0";
 								$match["raw"].= $char;
 								$match["init"] = $start;
@@ -223,7 +228,7 @@ class ManiaqueryParser {
 							}
 							else
 								$state = "0";
-						break;
+							break;
 						case "g1":
 							$st = "global";
 							if($char == substr($st, strlen($match["global"])-strlen($st), 1))
@@ -233,20 +238,20 @@ class ManiaqueryParser {
 									if($char == "v")
 										$state = "v1";
 									elseif ($char == " ")
-										$state = "g1";
+									$state = "g1";
 									else
 										$state = "0";
 								}
 							}
-						break;
+							break;
 						case "v1":
 							$st = "var";
 							($char == "a")?$state = "v2":$state = "0";
-						break;
+							break;
 						case "v2":
 							$st = "var";
 							($char == "r")?$state = "v3":$state = "0";
-						break;
+							break;
 						case "v3":
 							$st = "var";
 							if($char == " ")
@@ -260,17 +265,17 @@ class ManiaqueryParser {
 								} else
 									$state = "0";
 							}
-						break;
+							break;
 						case "vt":
-							if(preg_match('/[a-z0-9]/i', $char)) {
+							if (preg_match('/[a-z0-9]/i', $char)) {
 								$match["type"].=$char;
 							} elseif ($char == ")") {
 								$state = "vn";
 							} else
 								$state = "0";
-						break;
+							break;
 						case "vn":
-							if(preg_match('/[a-z0-9_]/i', $char)) {
+							if (preg_match('/[a-z0-9_]/i', $char)) {
 								$match["name"].=$char;
 							} elseif ($char == " ") {
 								$state = $state;
@@ -282,7 +287,7 @@ class ManiaqueryParser {
 								$state = "0";
 							} else
 								$state = "0";
-						break;
+							break;
 						case "vv":
 							if ($char == ";") {
 								$match["init"] = $start;
@@ -290,7 +295,7 @@ class ManiaqueryParser {
 								$state = "0";
 							} else
 								$match["value"].= $char;
-						break;
+							break;
 						default:
 							echo ' something somewhere went terribly wrong!<br/>';
 					}
@@ -298,8 +303,8 @@ class ManiaqueryParser {
 				}
 			} else {
 				// string
-				if($char == $this->string_delimiter && $pred != '\\')
-					$this->string_delimiter = "";
+				if($char == $this->stringDelimiter && $pred != '\\')
+					$this->stringDelimiter = "";
 				else {
 					addToLastKey($this->strings, $char);
 				}
@@ -313,7 +318,7 @@ class ManiaqueryParser {
 					case 'vv':
 						$match["value"].=$char;
 						break;
-					
+							
 					default:
 						# code...
 						break;
@@ -321,8 +326,8 @@ class ManiaqueryParser {
 			}
 			if($state != "0")
 				$match["raw"].= $char;
-			// echo '@' . $cursor . ', zeichen: <b>' . $char . '</b>, zustand: <b>' . $state . '</b> stringstate: '.$this->string_delimiter.'<br>';
-			// echo '  round: ' . $this->bracket_round . ', curly: ' . $this->bracket_curly . ', square: ' . $this->bracket_square . '<br/>';
+			// echo '@' . $cursor . ', zeichen: <b>' . $char . '</b>, zustand: <b>' . $state . '</b> stringstate: '.$this->stringDelimiter.'<br>';
+			// echo '  round: ' . $this->bracketRound . ', curly: ' . $this->bracketCurly . ', square: ' . $this->bracketSquare . '<br/>';
 		}
 		// print_r($this->strings);
 		// print_r($jqueryStacks);
@@ -330,32 +335,36 @@ class ManiaqueryParser {
 		$this->jqueryStacks = $jqueryStacks;
 	}
 
-	public function getJqueryStacks() {
+	public function getJqueryStacks()
+	{
 		return $this->jqueryStacks;
 	}
 
-	public function getVariables() {
+	public function getVariables()
+	{
 		return $this->variables;
 	}
 
-	public function getStrings() {
+	public function getStrings()
+	{
 		return $this->strings;
 	}
 
-	public static function parseObj($string) {
+	public static function parseObj($string)
+	{
 		if(!is_string($string))
 			return $string;
 		$string = trim($string);
 		// if(!preg_match('/^\{(.*)\}$/s', $string))
 		// 	return $string;
-		$string_delimiter = "";
+		$stringDelimiter = "";
 		$result = new \stdClass();
 		$state = 0;
 		$copen = 0;
 		$sopen = 0;
-		for($i=0; $i<strlen($string); $i++) {
+		for ($i=0; $i<strlen($string); $i++) {
 			$char = $string[$i];
-			if($state != "3") {
+			if ($state != "3") {
 				if($char=="{")
 					$copen++;
 				if($char=="}")
@@ -369,25 +378,25 @@ class ManiaqueryParser {
 				// default, wainting vor the key
 				case 0:
 					$match = array("key"=>"", "value"=>"");
-					if(preg_match('/[a-z]/i', $char)) {
+					if (preg_match('/[a-z]/i', $char)) {
 						$match["key"] = $char;
 						$state = 1;
 					}
 					break;
-				// matching the key
+					// matching the key
 				case 1:
-					if(preg_match('/[a-z0-9_]/i', $char)) {
+					if (preg_match('/[a-z0-9_]/i', $char)) {
 						$match["key"].= $char;
 					} elseif ($char == ":") {
 						$state = 2;
 					} else
 						$state = 0;
 					break;
-				// matching the value
+					// matching the value
 				case 2:
 					if ($char == "," || $char == "}") {
-						if($sopen == 0 && (($copen == 0 && $char == "}") || ($copen == 1 && $char==",")))
-						{
+						if ($sopen == 0 && (($copen == 0 && $char == "}") 
+								|| ($copen == 1 && $char==","))) {
 							$key = trim($match["key"]);
 							$match["value"] = preg_replace('/^(\"|\')(.*)\1$/s', '\2', trim($match["value"]));
 							if($match["value"] === "true")
@@ -401,22 +410,22 @@ class ManiaqueryParser {
 							continue;
 						}
 					}
-					if(preg_match('/(\"|\')/', $char, $s)) {
-						$string_delimiter = $s[1];
+					if (preg_match('/(\"|\')/', $char, $s)) {
+						$stringDelimiter = $s[1];
 						$state = 3;
-						if($match["value"][0] != $string_delimiter && strlen($match["value"]) > 0)
+						if($match["value"][0] != $stringDelimiter && strlen($match["value"]) > 0)
 							$match["value"].= $char;
-					} else 
+					} else
 						$match["value"].= $char;
 					break;
-				// matching strings
+					// matching strings
 				case 3:
-					if($char == $string_delimiter && $string_delimiter!="" && $string[$i-1]!="\\") {
-						$string_delimiter = "";
+					if ($char == $stringDelimiter && $stringDelimiter!="" && $string[$i-1]!="\\") {
+						$stringDelimiter = "";
 						$state = 2;
-						if($match["value"][0] != $string_delimiter)
+						if($match["value"][0] != $stringDelimiter)
 							$match["value"].= $char;
-					} else 
+					} else
 						$match["value"].= $char;
 					break;
 			}
@@ -427,7 +436,8 @@ class ManiaqueryParser {
 
 }
 
-function addToLastKey(&$stack, $value) {
+function addToLastKey(&$stack, $value)
+{
 	$lastKey = max(array_keys($stack));
 	$stack[$lastKey].=$value;
 }

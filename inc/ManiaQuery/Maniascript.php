@@ -6,7 +6,8 @@ namespace ManiaQuery;
  * Originally made for Boxes.
  *
  * @author Blade
- * @version 03/26/2012
+ * @author zocka
+ * @version 07/19/2013
  */
 class Maniascript
 {
@@ -19,6 +20,7 @@ class Maniascript
 	public $mouseClickEvents = array();
 	public $mouseOverEvents = array();
 	public $mouseOutEvents = array();
+	public $areaClickEvents = array();
 	public $subEvents = array();
 	public $afterMainContent = array();
 	public $finalResult = "";
@@ -38,7 +40,7 @@ class Maniascript
 		$arrayTest = is_in_array($this->globalVariables, $name);
 		if ($arrayTest) {
 			$this->globalVariables[$name] = $dataType; 
-		}else{
+		} else {
 			throw new \Exception("The variable ".$name." already exists!");
 		}
 	}
@@ -58,7 +60,7 @@ class Maniascript
 		$arrayTest = is_in_array($this->functions, $name);
 		if ($arrayTest) {
 			$this->functions[$name] = array(ucfirst($dataType),$content,$parameter); 
-		}else{
+		} else {
 			throw new \Exception("The function ".$name." already exists!");
 		}
 	}
@@ -79,7 +81,8 @@ class Maniascript
 	 *
 	 * @param string $dataType ManiaScript datatype for the variable.
 	 * @param string $name Name for the variable.
-	 * @param boolean $global States wether or not the variable should be made global by declaring it for the Page object.
+	 * @param boolean $global States wether or not the variable should be made 
+	 * 	global by declaring it for the Page object.
 	 * @param string $content Optional predefined value for the variable.
 	 * @param boolean $ifNotExists Able to suppres the Exception.
 	 * @throws Exception if a variable with this name already is defined.
@@ -90,7 +93,7 @@ class Maniascript
 		$arrayTest = is_in_array($this->mainVariables, $name);
 		if ($arrayTest) {
 			$this->mainVariables[$name] = array(ucfirst($dataType),$global,$content); 
-		}else{
+		} else {
 			if(!$ifNotExists)
 				throw new \Exception("The variable ".$name." already exists!");
 		}
@@ -136,6 +139,17 @@ class Maniascript
 	public function addMouseClickEvent($controlID, $code)
 	{
 		$this->mouseClickEvents[] = array($controlID, $code); 
+	}
+	
+	/**
+	 * Declares a listener for MouseClicks in a certain area Events.
+	 *
+	 * @param array $area The coordinates of the area where the event is triggered.
+	 * @param string $code The code executed on triggering the event.
+	 */
+	public function addAreaClickEvent($area, $code)
+	{
+		$this->areaClickEvents[] = array($area, $code); 
 	}
 	
 	/**
@@ -192,7 +206,8 @@ class Maniascript
 	/**
 	 * Puts everything together.
 	 *
-	 * @param boolean $return Decide if this function directly outputs the ManiaScript or just returns it.
+	 * @param boolean $return Decide if this function directly outputs
+	 *  the ManiaScript or just returns it.
 	 * @return If called this way, it will return the ManiaScript.
 	 */
 	public function build($return = true)
@@ -200,12 +215,14 @@ class Maniascript
 		
 		$this->finalResult.='#Include "TextLib" as TextLib ' . "\n";
 		$this->finalResult.='#Include "MathLib" as MathLib ' . "\n";
-		if (is_array($this->globalVariables)){
-			foreach ($this->globalVariables as $name=>$dataType){
+		if (is_array($this->globalVariables)) {
+			foreach ($this->globalVariables as $name=>$dataType) {
 				$this->finalResult.="declare ".$dataType." ".$name.";\n";
 			}
 			$this->finalResult.=' ';
 		}
+		$this->finalResult.='declare CMlEvent Event_bak; declare Boolean Event_blocked;' . "\n" .'
+			Void bakEvent(CMlEvent e) {if(!Event_blocked) {}Event_bak <=> e;}'."\n";
 		$this->finalResult.=$this->beforeMainContent;
 		// Tom: 2. funktion
 		$this->finalResult.='
@@ -223,10 +240,10 @@ class Maniascript
 		{
 			declare Integer PassedTime for Page;
 			declare Integer[Text] sleeps for Page;
-			if(!sleeps.existskey(Name)){
+			if(!sleeps.existskey(Name)) {
 				sleeps[Name] = CurrentTime;
 			}
-			if(CurrentTime-sleeps[Name] >= Time){
+			if(CurrentTime-sleeps[Name] >= Time) {
 				sleeps[Name] = CurrentTime;
 				return True;
 			}
@@ -235,69 +252,101 @@ class Maniascript
 		}
 		
 		';
-		if (is_array($this->functions)){
-			foreach ($this->functions as $name=>$content){
-				$this->finalResult.="".$content[0]." ".$name."(".$content[2]."){".$content[1]."}";
+		if (is_array($this->functions)) {
+			foreach ($this->functions as $name=>$content) {
+				$this->finalResult.="".$content[0]." ".$name."(".$content[2].") {".$content[1]."}";
 			}
 		}
 		
-		$this->finalResult.="main(){";
+		$this->finalResult.="main() {";
 		
-		if (is_array($this->mainVariables)){
-			foreach ($this->mainVariables as $name=>$content){
+		if (is_array($this->mainVariables)) {
+			foreach ($this->mainVariables as $name=>$content) {
 				if(!preg_match('/^CMl/', $content[0]))
-					$this->finalResult.="declare " . $content[0] . " " . $name .  ($content[1]?" for Page ":"") . ($content[2]?" = " . $content[2]:"") . ";";
+					$this->finalResult.="declare " . $content[0] . " " . $name .  ($content[1]?" for Page ":"")
+					 . ($content[2]?" = " . $content[2]:"") . ";";
 				else
-					$this->finalResult.="declare " . $content[0] . " " . $name .  ($content[1]?" for Page ":"") . ($content[2]?" <=> (Page.GetFirstChild(\"".$content[2]."\") as " . $content[0] . ")":"") . ";";
+					$this->finalResult.="declare " . $content[0] . " " . $name .  ($content[1]?" for Page ":"")
+					 . ($content[2]?" <=> (Page.GetFirstChild(\"".$content[2]."\") as " . $content[0] . ")":"") . ";";
 			}
 		}
 		
-		if (is_array($this->mainContent)){
-			foreach ($this->mainContent as $id=>$content){
+		if (is_array($this->mainContent)) {
+			foreach ($this->mainContent as $id=>$content) {
 				$this->finalResult.= $content;
 			}
 		}
 		// Tom: f
 		$this->finalResult.= "declare PassedTime for Page = 0; declare lastTime = CurrentTime;\n";
 		$this->finalResult.='
-		while(True){
-		';
-		if (is_array($this->loopContent)){
-			foreach ($this->loopContent as $id=>$content){
+		while(True) {';
+		if (is_array($this->loopContent)) {
+			foreach ($this->loopContent as $id=>$content) {
 				$this->finalResult.= $content;
 			}
 				
 		}
+		
+		if (!empty($this->areaClickEvents)) {
+			$this->finalResult.='if(MouseLeftButton) {';
+			if (is_array($this->areaClickEvents)) {
+				foreach ($this->areaClickEvents as $key=>$code) {
+					$posns = $code[0];
+					if ($posns[0][0]<$posns[1][0]) {
+						$left = $posns[0];
+						$right = $posns[1];
+					} else {
+						$left = $posns[1];
+						$right = $posns[0];
+					}
+					if ($posns[0][1]<$posns[1][1]) {
+						$bot = $posns[0];
+						$top = $posns[1];
+					} else {
+						$bot = $posns[1];
+						$top = $posns[0];
+					}
+					$this->finalResult.='if (MouseX <= '.$right[0].' && MouseX >= '.$left[0].' 
+							&& MouseY <= '.$top[1].' && MouseY >= '.$bot[1].') {
+						'.$code[1].'
+					}';
+				}
+			}
+			$this->finalResult.='
+						}';
+		}
+
 		$this->finalResult.='declare substrEventId = "";
 			declare substrEventIdRest = "";
 			declare Integer substrEbentIdRestLenght;
-			foreach(Event in PendingEvents){
+			foreach(Event in PendingEvents) {
+				bakEvent(Event);
 				substrEventId = TextLib::SubString(Event.ControlId^"", 0, 5);
 				substrEbentIdRestLenght = strlen(Event.ControlId^"");
 				substrEventIdRest = TextLib::SubString(Event.ControlId^"", 5, substrEbentIdRestLenght);';
 				
-		if (is_array($this->keyPressEvents) && !empty($this->keyPressEvents)){
-			$this->finalResult.="if(Event.Type == CMlEvent::Type::KeyPress){";
-				foreach ($this->keyPressEvents as $id=>$code){
-					$this->finalResult.='if (Event.CharPressed == "'.$code[0].'"){'.$code[1].'
+		if (is_array($this->keyPressEvents) && !empty($this->keyPressEvents)) {
+			$this->finalResult.="if(Event_bak.Type == CMlEvent::Type::KeyPress) {Event_blocked=True;";
+				foreach ($this->keyPressEvents as $id=>$code) {
+					$this->finalResult.='if (Event_bak.CharPressed == "'.$code[0].'") {'.$code[1].'
 					}';
 				}
 			$this->finalResult.="
 			}";
 		}
 		
-		if (is_array($this->mouseClickEvents) or is_array($this->subEvents)){
-			$this->finalResult.='if(Event.Type == CMlEvent::Type::MouseClick){';
-			if (is_array($this->mouseClickEvents)){
-				foreach ($this->mouseClickEvents as $id=>$code){
-					$this->finalResult.='if (Event.ControlId == "'.$code[0].'"){'.$code[1].'
+		if (is_array($this->mouseClickEvents) or is_array($this->subEvents)) {
+			$this->finalResult.='if(Event_bak.Type == CMlEvent::Type::MouseClick) {Event_blocked=True;';
+			if (is_array($this->mouseClickEvents)) {
+				foreach ($this->mouseClickEvents as $id=>$code) {
+					$this->finalResult.='if (Event_bak.ControlId == "'.$code[0].'") {'.$code[1].'
 					}';
 				}
 			}
-			if (is_array($this->subEvents)){
-				foreach ($this->subEvents as $subId=>$code){
-					if ($code[2]=="MouseClick"){
-						$this->finalResult.='if (substrEventId == "'.$code[0].'"){'.$code[1].'
+			if (is_array($this->subEvents)) {
+				foreach ($this->subEvents as $subId=>$code) {
+					if ($code[2]=="MouseClick") {
+						$this->finalResult.='if (substrEventId == "'.$code[0].'") {'.$code[1].'
 						}';
 					}
 				}
@@ -306,18 +355,18 @@ class Maniascript
 			}
 		}
 		
-		if (is_array($this->mouseOverEvents) or is_array($this->subEvents)){
-			$this->finalResult.="if(Event.Type == CMlEvent::Type::MouseOver){";	
-			if (is_array($this->mouseOverEvents)){
-				foreach ($this->mouseOverEvents as $id=>$code){
-					$this->finalResult.='if (Event.ControlId == "'.$code[0].'"){'.$code[1].'
+		if (is_array($this->mouseOverEvents) or is_array($this->subEvents)) {
+			$this->finalResult.="if(Event_bak.Type == CMlEvent::Type::MouseOver) {Event_blocked=True;";	
+			if (is_array($this->mouseOverEvents)) {
+				foreach ($this->mouseOverEvents as $id=>$code) {
+					$this->finalResult.='if (Event_bak.ControlId == "'.$code[0].'") {'.$code[1].'
 					}';
 				}
 			}
-			if (is_array($this->subEvents)){
-				foreach ($this->subEvents as $subId=>$code){
-					if ($code[2]=="MouseOver"){
-						$this->finalResult.='if (substrEventId == "'.$code[0].'"){'.$code[1].'
+			if (is_array($this->subEvents)) {
+				foreach ($this->subEvents as $subId=>$code) {
+					if ($code[2]=="MouseOver") {
+						$this->finalResult.='if (substrEventId == "'.$code[0].'") {'.$code[1].'
 						}';
 					}
 				}
@@ -326,18 +375,18 @@ class Maniascript
 			}
 		}
 		
-		if (is_array($this->mouseOutEvents) or is_array($this->subEvents)){
-			$this->finalResult.="if(Event.Type == CMlEvent::Type::MouseOut){";
-			if (is_array($this->mouseOutEvents)){
-				foreach ($this->mouseOutEvents as $id=>$code){
-					$this->finalResult.='if (Event.ControlId == "'.$code[0].'"){'.$code[1].'
+		if (is_array($this->mouseOutEvents) or is_array($this->subEvents)) {
+			$this->finalResult.="if(Event_bak.Type == CMlEvent::Type::MouseOut) {Event_blocked=True;";
+			if (is_array($this->mouseOutEvents)) {
+				foreach ($this->mouseOutEvents as $id=>$code) {
+					$this->finalResult.='if (Event_bak.ControlId == "'.$code[0].'") {'.$code[1].'
 					}';
 				}
 			}
-			if (is_array($this->subEvents)){
-				foreach ($this->subEvents as $subId=>$code){
-					if ($code[2]=="MouseOut"){
-						$this->finalResult.='if (substrEventId == "'.$code[0].'"){'.$code[1].'
+			if (is_array($this->subEvents)) {
+				foreach ($this->subEvents as $subId=>$code) {
+					if ($code[2]=="MouseOut") {
+						$this->finalResult.='if (substrEventId == "'.$code[0].'") {'.$code[1].'
 						}';
 					}
 				}
@@ -348,13 +397,27 @@ class Maniascript
 		}
 		$this->finalResult.="
 		}";		
-		if (is_array($this->afterMainContent)){
-			foreach ($this->afterMainContent as $id=>$content){
+		if (is_array($this->afterMainContent)) {
+			foreach ($this->afterMainContent as $id=>$content) {
 				$this->finalResult.= $content;
 			}
 		}
 		// Tom: f
 		$this->finalResult.= "PassedTime = CurrentTime-lastTime; lastTime = CurrentTime;";
+		$this->finalResult.="foreach(_timeoutkey=>_timeoutarray in _timeouts) {
+				if(_timeoutkey <= Now) {
+					for(k, 0, _timeoutarray.count - 1)
+					{
+						declare Text _timeoutFn = _timeoutarray[k];
+						declare CMlControl _timeoutBinder = _timeoutBinders[_timeoutkey][k];
+						switch(_timeoutFn){
+							##timeoutSwitch##	
+						}
+					}
+					_timeouts.removekey(_timeoutkey);
+					_timeoutBinders.removekey(_timeoutkey);
+				}
+			}";
 		$this->finalResult.="yield;
 		}}";
 	// $this->finalResult=str_replace(array("\r","\n"),array("",""),$this->finalResult);
@@ -363,10 +426,31 @@ class Maniascript
 	// var_dump($replace[0], $replace[1]);
 		$this->finalResult = preg_replace($replace[0].'s', $replace[1], $this->finalResult);
 	}
+	$this->timeoutSwitch();
 	if($return)
 		return $this->finalResult;
 	echo $this->finalResult;
 	
+	}
+	
+	private function timeoutSwitch()
+	{
+		preg_match_all(
+			'/setTimeout\(\"(.*?)\",(.*?),(.*?)\);/s',
+			$this->finalResult,
+			$timeoutFunctions,
+			PREG_SET_ORDER
+		);
+		$fn = array();
+		foreach ($timeoutFunctions as $timeout) {
+			$name = $timeout[1];
+			if(!in_array($name, $fn)) $fn[] = $name;
+		}
+		$switchcases = "";
+		foreach ($fn as $f) {
+			$switchcases .= 'case "'.$f.'":{'.$f.'(_timeoutBinder);}';
+		}
+		$this->finalResult = str_replace("##timeoutSwitch##", $switchcases, $this->finalResult);
 	}
 }
 ?>

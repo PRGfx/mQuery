@@ -178,33 +178,52 @@ class ManiaQuery
 					$scriptHandler->addReplace(array($reg1, $reg2));
 					// var_dump($fncall);
 				}else{
-					if (!$this->mq_function_exists($function["name"])) {
-						throw new \Exception("Error: '".$function["name"]."()' is not a valid function!", 1);
-						continue;
-					} else {
-						$mq_function = "mq_" . $function["name"];
-						$elements = $this->getElements($selector);
-						/* $selector == '$' for global function calls */
-						/* not implemented yet! */
-						if(empty($elements))
-							throw new \Exception("Notice: No elements matching '".addslashes($selector)."' found!", 1);
-						foreach($elements as $key=>$element) {
-							if(!$element instanceof \ManialinkAnalysis\ManialinkElement)
-								continue;
-							$this->prepareAttributes($function["parameters"]);
-							if (empty($function["parameters"]))
-								$function["parameters"] = array();
-							$parameters = array_merge(array($this, $element), $function["parameters"]);
-							$uses = $this->useFn($mq_function);
-							if($uses == 1 && file_exists(dirname(__FILE__)."/mqStyles/".$mq_function.".css"))
-								$this->ManialinkAnalizer->addStyleSheet(dirname(__FILE__)."/mqStyles/".$mq_function.".css");
-							try {
-								$new = call_user_func_array($mq_function, $parameters);
-							} catch (\Exception $e) {
-								throw new \Exception($e->getMessage(), 1);
+					if($selector == "$")
+					{
+						if(count($function["parameters"]) == 1)
+						{
+							$code = trim(substr($function["parameters"][0], 1, -1));
+							switch ($function["name"]) {
+								case 'main':
+									$this->MScript->addCodeToMain($code);
+									break;
+								case 'loop':
+									$this->MScript->addCodeToLoop($code);
+									break;
+								case 'body':
+									$this->MScript->addCodeBeforeMain($code);
+									break;
 							}
 						}
-						$elements = null;
+					} else {
+						if (!$this->mq_function_exists($function["name"])) {
+							throw new \Exception("Error: '".$function["name"]."()' is not a valid function!", 1);
+							continue;
+						} else {
+							$mq_function = "mq_" . $function["name"];
+							$elements = $this->getElements($selector);
+							/* $selector == '$' for global function calls */
+							/* not implemented yet! */
+							if(empty($elements))
+								throw new \Exception("Notice: No elements matching '".addslashes($selector)."' found!", 1);
+							foreach($elements as $key=>$element) {
+								if(!$element instanceof \ManialinkAnalysis\ManialinkElement)
+									continue;
+								$this->prepareAttributes($function["parameters"]);
+								if (empty($function["parameters"]))
+									$function["parameters"] = array();
+								$parameters = array_merge(array($this, $element), $function["parameters"]);
+								$uses = $this->useFn($mq_function);
+								if($uses == 1 && file_exists(dirname(__FILE__)."/mqStyles/".$mq_function.".css"))
+									$this->ManialinkAnalizer->addStyleSheet(dirname(__FILE__)."/mqStyles/".$mq_function.".css");
+								try {
+									$new = call_user_func_array($mq_function, $parameters);
+								} catch (\Exception $e) {
+									throw new \Exception($e->getMessage(), 1);
+								}
+							}
+							$elements = null;
+						}
 					}
 				}
 			}
@@ -215,10 +234,13 @@ class ManiaQuery
 	 * Enables multiple (espacially shorthand-)versions of data types.
 	 * e.g. int->Integer, quad->CMlQuad, string->Text etc.
 	 */
-	private function adjustType($type, $value="") {
-		if($value!=" ")
+	private function adjustType($type, $value="")
+	{
+		if ($value!=" ")
 			$value = trim($value);
-		if(is_numeric($value)){
+		if ($value == "True" || $value == "False")
+			return "Boolean";
+		if (is_numeric($value)) {
 			if(preg_match('/\./', $value))
 				$type = "real";
 			else
@@ -243,10 +265,11 @@ class ManiaQuery
 	 * e.g. $type differs from the read type of $value, it will be fixed with
 	 * TextLib::ToText(), MathLib::ToInteger() etc.
 	 */
-	private function adjustValue(&$type, $value) {
+	private function adjustValue(&$type, $value)
+	{
 		if($value!=" ")
 			$value = trim($value);
-		if(!preg_match('/^\$/', trim($value))) {
+		if (!preg_match('/^\$/', trim($value))) {
 			// $value = preg_replace('/^(\"|\')(.*)\1$/', '\2', $value);
 			if(is_numeric($value)) {
 				if(preg_match('/\./', $value))
@@ -350,8 +373,6 @@ class ManiaQuery
 			foreach ($attributes as $key=>$attribute) {
 				$attribute = preg_replace('/^function\(([^)]*)\)\s*?\{(.*)}$/s', '\2', trim($attribute));
 				$attribute = trim($attribute);
-				if(!preg_match('/;$/', $attribute))
-					$attribute.=';';
 				$attributes[$key] = $attribute;
 			}
 		}
