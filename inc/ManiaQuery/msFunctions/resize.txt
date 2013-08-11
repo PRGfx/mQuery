@@ -1,0 +1,45 @@
+Void _resizeExec(CMlControl e)
+{
+	declare Vec2 _resizeAniSWidth for e;
+	declare Boolean _resizeAniAccel for e;
+	declare Vec2 _resizeAniTo for e;
+	declare Integer _resizeAniSteps for e;
+	declare Integer _resizeAniState for e;
+	if(_resizeAniState < _resizeAniSteps)
+	{
+		declare Real sx = _resizeAniSWidth[0];
+		declare Real sy = _resizeAniSWidth[1];
+		if(_resizeAniAccel)
+		{
+			declare Real mod = (MathLib::PI() / 2.) * MathLib::Sin(MathLib::PI()
+			*(MathLib::ToReal(_resizeAniState)/MathLib::ToReal(_resizeAniSteps)));
+			sx *= mod;
+			sy *= mod;
+		}
+		e.Size[0] += sx;
+		e.Size[1] += sy;
+		_resizeAniState += 1;
+		setTimeout("_resizeExec", 1, e);
+	} else {
+		e.Size = <_resizeAniTo[0], _resizeAniTo[1]>;
+	}
+}
+
+Void Resize(CMlControl e, Vec2 to, Integer steps, Boolean accel)
+{
+	declare Real dx = to[0] - e.Size[0];
+	declare Real dy = to[1] - e.Size[1];
+	declare Real sx = dx / steps;
+	declare Real sy = dy / steps;
+	declare Vec2 _resizeAniSWidth for e;
+		_resizeAniSWidth = <sx, sy>;
+	declare Boolean _resizeAniAccel for e;
+		_resizeAniAccel = accel;
+	declare Vec2 _resizeAniTo for e;
+		_resizeAniTo = to;
+	declare Integer _resizeAniSteps for e;
+		_resizeAniSteps = steps;
+	declare Integer _resizeAniState for e;
+		_resizeAniState = 0;
+	setTimeout("_resizeExec", 0, e);
+}

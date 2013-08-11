@@ -1,0 +1,55 @@
+Void _blackopsText(CMlControl label)
+{
+	declare Text _mqTextEffect_text for label;
+	declare Integer _mqTextEffect_steps for label;
+	declare Integer _mqTextEffect_step for label;
+	if (_mqTextEffect_step < _mqTextEffect_steps) {
+		declare Text pool = "abcdefghijklmnopqrstuvwxyz0123456789" ^
+			"ABCDEFGHIJKLMNOPQRSTUVWXYZ";
+		declare Text stepText = "";
+		for(i, 0, TextLib::Length(_mqTextEffect_text)-1)
+		{
+			stepText ^= TextLib::SubString(pool, MathLib::Rand(0, 61), 1);
+		}
+		(label as CMlLabel).SetText(stepText);
+		_mqTextEffect_step += 1;
+		setTimeout("_blackopsText", 35, label);
+	} else {
+		(label as CMlLabel).SetText(_mqTextEffect_text);
+	}
+}
+Void blackopsText(CMlLabel label, Text text, Integer steps)
+{
+	declare Text _mqTextEffect_text for label;
+	declare Integer _mqTextEffect_steps for label;
+	declare Integer _mqTextEffect_step for label;
+	label.Show();
+	_mqTextEffect_text = text;
+	_mqTextEffect_steps = steps;
+	_mqTextEffect_step = 0;
+	_blackopsText(label);
+}
+Void blackopsText(CMlLabel label, Text text)
+{
+	blackopsText(label, text, 7);
+}
+
+Void mqText_addSpaces(CMlLabel label, Integer spaces)
+{
+	declare Text newText = "";
+	declare Text mqText_oldText for label;
+	mqText_oldText = label.Value;
+	for (i, 0, TextLib::Length(label.Value)-1) {
+		newText ^= TextLib::SubString(label.Value, i, 1) ^ " ";
+	}
+	label.Value = newText;
+}
+Void mqText_addSpaces(CMlLabel label)
+{
+	mqText_addSpaces(label, 2);
+}
+Void mqText_removeSpaces(CMlControl label)
+{
+	declare Text mqText_oldText for label;
+	(label as CMlLabel).Value = mqText_oldText;
+}

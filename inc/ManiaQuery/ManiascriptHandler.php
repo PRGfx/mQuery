@@ -24,6 +24,25 @@ class ManiascriptHandler extends Maniascript
 	public function __construct(\ManialinkAnalysis\manialinkAnalizer $manialinkAnalizer)
 	{
 		$this->manialinkAnalizer = $manialinkAnalizer;
+		$this->addCodeBeforeMain(
+			'declare Text[Integer][Integer] _timeouts;
+			declare CMlControl[Integer][Integer] _timeoutBinders;
+			
+			Void setTimeout(Text function, Integer offset, CMlControl binder)
+			{
+				declare Integer key = Now + offset;
+				declare Integer index = 0;
+				if(_timeouts.existskey(key)) index = _timeouts[key].count;
+				else { _timeouts[key] = Text[Integer]; _timeoutBinders[key] = CMlControl[Integer]; } 
+				_timeouts[key][index] = function;
+				_timeoutBinders[key][index] = binder;
+			}
+			
+			Void setTimeout(Text function, Integer offset)
+			{
+				setTimeout(function, offset, Null);
+			}'
+		);
 		$functions = glob("./inc/ManiaQuery/msFunctions/*");
 		foreach ($functions as $function) {
 			if(substr($function, -3) == "php")

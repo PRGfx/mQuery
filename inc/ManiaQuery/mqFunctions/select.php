@@ -3,7 +3,7 @@ function mq_select($handler, $manialinkElement, $options = false)
 {
 	$uses = $handler->getUses("mq_select");
 	$options = \ManiaQuery\ManiaQuery::jsobj2php($options);
-	if(!isset($options->default)) {
+	if (!isset($options->default)) {
 		if($manialinkElement->get("default") != null)
 			$options->default = $manialinkElement->get("default");
 		else
@@ -14,7 +14,7 @@ function mq_select($handler, $manialinkElement, $options = false)
 	$scriptHandler = $handler->scriptHandler();
 	$entryId = "mqSelectEntry".$uses;
 	$labelId = "mqSelectLabel".$uses;
-	if($manialinkElement->type == "entry") {
+	if ($manialinkElement->type == "entry") {
 		if($manialinkElement->get("name") != null)
 			$options->name = $manialinkElement->get("name");
 		if(isset($options->name))
@@ -27,7 +27,7 @@ function mq_select($handler, $manialinkElement, $options = false)
 		else
 			$manialinkElement->set("id", $entryId);
 		$manialinkElement->append($label->toString());
-	}elseif($manialinkElement->type=="label") {
+	} elseif ($manialinkElement->type=="label") {
 		// entry
 		$entry = new \ManialinkAnalysis\ManialinkElement("<entry />");
 		$entry->set("posn", $manialinkElement->get("posn"))->set("sizen", $manialinkElement->get("sizen"))->set("style", $manialinkElement->get("style"))->set("textcolor", $manialinkElement->get("textcolor"))->set("default", $options->default);
@@ -37,7 +37,7 @@ function mq_select($handler, $manialinkElement, $options = false)
 			$entry->set("name", $options->name);
 		$entry->set("hidden", "1")->set("id", $entryId);
 		// label modifications
-		$manialinkElement->set("name","")->set("class", "mqSelectLabel");
+		$manialinkElement->set("name", "")->set("class", "mqSelectLabel");
 		$manialinkElement->set("text", $options->default);
 		if($manialinkElement->get("id") != null)
 			$labelId = $manialinkElement->get("id");
@@ -54,8 +54,7 @@ function mq_select($handler, $manialinkElement, $options = false)
 	$data = json_decode($options->data);
 	// var_dump($data);
 	$append = "";
-	if($options->icon == true)
-	{
+	if ($options->icon == true) {
 		$append.= '<quad class="mqSelectIcon" id="mqSelectIcon'.$uses.'" posn="'.$corners[1][0].' '.$corners[1][1].' '.$manialinkElement->get("z").'" scriptevents="1" />';
 	}
 		$y = $corners[2][1]-1;
@@ -78,8 +77,7 @@ function mq_select($handler, $manialinkElement, $options = false)
 		if($uses == 1)
 			$append.= '<quad bgcolor="0000" posn="-160 90 59" sizen="320 180" id="mqSelectOverlay" scriptevents="1" hidden="1" />';
 		$manialinkElement->append($append);
-	if($uses == 1)
-	{
+	if ($uses == 1) {
 		$scriptHandler->declareGlobalVariable("Text", "mqSelectCurrent");
 		$scriptHandler->addMouseClickEvent("mqSelectOverlay", 'mqSelectHide();');
 		// mqSelectShow(Text uses)
@@ -110,10 +108,10 @@ function mq_select($handler, $manialinkElement, $options = false)
 		';
 		$scriptHandler->addFunction("Void", "mqSelectInsert", $fn, "Text uses, Text value, Text entry, Text label");
 	}
-	if(isset($options->onSelect)) {
+	if (isset($options->onSelect)) {
 		preg_match('/^function(\s+)?\((\w+)?\)(\s+)?\{(.*)\}$/si', trim($options->onSelect), $callback);
 		$body = $callback[4];
-		if(!empty($callback[2])) {
+		if (!empty($callback[2])) {
 			$var = $callback[2];
 			if($var!="value")
 				$body = "declare Text ".$var." = value;".$body;

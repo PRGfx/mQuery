@@ -2,7 +2,7 @@
 function mq_tooltip($handler, $manialinkElement, $options = false)
 {
 	$uses = $handler->getUses("mq_tooltip");
-	if(preg_match('/^(\"|\')/', $options, $del)) {
+	if (preg_match('/^(\"|\')/', $options, $del)) {
 		$text = preg_replace('/^'.$del[1].'(.*)'.$del[1].';/', '\1', $options);
 		$options = new \StdClass();
 		$options->text = $text;
@@ -45,11 +45,11 @@ function mq_tooltip($handler, $manialinkElement, $options = false)
 
 	// maniascript
 	$elementId = $scriptHandler->addListener($manialinkElement);
-	$scriptHandler->addCodeToMain('
-		declare CMlFrame mqTooltip'.$uses.' <=> (Page.GetFirstChild("mqTooltip'.$uses.'") as CMlFrame);
+	$scriptHandler->addCodeToMain(
+		'declare CMlFrame mqTooltip'.$uses.' <=> (Page.GetFirstChild("mqTooltip'.$uses.'") as CMlFrame);
 		mqTooltip'.$uses.'.PosnZ = 60.0;
-		mqTooltip'.$uses.'.Hide();
-		');
+		mqTooltip'.$uses.'.Hide();'
+	);
 	// mouseover
 	$do = 'mqTooltip'.$uses.'.Show();';
 	if($options->position=="relative")
@@ -59,7 +59,7 @@ function mq_tooltip($handler, $manialinkElement, $options = false)
 	$do = 'mqTooltip'.$uses.'.Hide();';
 	$scriptHandler->addMouseOutEvent($manialinkElement->get("id"), $do);
 
-	if($uses == 1) {
+	if ($uses == 1) {
 		$fn = '
 		declare CMlFrame ttf <=> (Page.GetFirstChild(id) as CMlFrame);
 		if (MouseX > 145)

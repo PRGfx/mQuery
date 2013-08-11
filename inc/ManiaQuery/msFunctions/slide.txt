@@ -1,5 +1,3 @@
-<?php
-echo'
 Void _slideExec(CMlControl e)
 {
 	declare Vec2 _slideAniSWidth for e;
@@ -46,4 +44,3 @@ Void Slide(CMlControl e, Vec2 to, Integer steps, Boolean accel)
 		_slideAniState = 0;
 	setTimeout("_slideExec", 0, e);
 }
-';

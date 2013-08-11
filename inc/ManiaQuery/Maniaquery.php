@@ -104,7 +104,7 @@ class ManiaQuery
 				if((bool) $var["global"] === true) {
 					$scriptHandler->addCodeBeforeMain("declare " . $var["type"] . " " . $var["name"] . ";");
 					$scriptHandler->addCodeToMain($var["name"] .$value);
-				}else{
+				} else {
 					$scriptHandler->addCodeToMain("declare " . $var["type"] . " " . $var["name"] .$value);
 				}
 			}elseif ($var["type"] == "Class") {
@@ -121,8 +121,8 @@ class ManiaQuery
 					$scriptHandler->addCodeToMain($id.' <=> (Page.GetFirstChild("'.$id.'") as CMlControl);');
 				}
 				// var_dump($var);
-			}else{
-				if((bool) $var["global"] === true) {
+			} else {
+				if ((bool) $var["global"] === true) {
 					$scriptHandler->declareGlobalVariable($var["type"], $var["name"]);
 					// $scriptHandler->addCodeBeforeMain("declare " . $var["type"] . " " . $var["name"] . ";");
 					try {
@@ -145,22 +145,20 @@ class ManiaQuery
 		// var_dump($stacks);
 		foreach ($stacks as $stack) {
 			$selector = $stack["selector"];
-			if(strpos($selector, '(') === false && !empty($selector) && strlen($selector) > 1)
-			{
+			if (strpos($selector, '(') === false && !empty($selector) && strlen($selector) > 1) {
 				$selector = substr($selector, 1);
-				if($this->varDefined($selector, $stack["init"]) === false){
+				if ($this->varDefined($selector, $stack["init"]) === false) {
 					throw new \Exception("Error: the variable '".$selector."' is not defined!", 1);
 					continue;
-				}else{
+				} else {
 					$var = $this->variables[$this->varDefined($selector, -1)];
 					$selector = $var["value"];
 				}
-			}else{
+			} else {
 				$var = null;
 			}
 			foreach ($stack["functions"] as $function) {
-				if(isset($var) && $var["type"] == "Class")
-				{
+				if (isset($var) && $var["type"] == "Class") {
 					if(!array_key_exists("parameters", $function))
 						$function["parameters"] = array();
 					$p = array_reverse($function["parameters"]);
@@ -177,7 +175,7 @@ class ManiaQuery
 					$reg2 = $var["class"] . '_\2(\1, \3)';
 					$scriptHandler->addReplace(array($reg1, $reg2));
 					// var_dump($fncall);
-				}else{
+				} else {
 					if($selector == "$")
 					{
 						if(count($function["parameters"]) == 1)
@@ -200,24 +198,24 @@ class ManiaQuery
 							throw new \Exception("Error: '".$function["name"]."()' is not a valid function!", 1);
 							continue;
 						} else {
-							$mq_function = "mq_" . $function["name"];
+							$mqFunction = "mq_" . $function["name"];
 							$elements = $this->getElements($selector);
 							/* $selector == '$' for global function calls */
 							/* not implemented yet! */
 							if(empty($elements))
 								throw new \Exception("Notice: No elements matching '".addslashes($selector)."' found!", 1);
-							foreach($elements as $key=>$element) {
+							foreach ($elements as $key=>$element) {
 								if(!$element instanceof \ManialinkAnalysis\ManialinkElement)
 									continue;
 								$this->prepareAttributes($function["parameters"]);
 								if (empty($function["parameters"]))
 									$function["parameters"] = array();
 								$parameters = array_merge(array($this, $element), $function["parameters"]);
-								$uses = $this->useFn($mq_function);
-								if($uses == 1 && file_exists(dirname(__FILE__)."/mqStyles/".$mq_function.".css"))
-									$this->ManialinkAnalizer->addStyleSheet(dirname(__FILE__)."/mqStyles/".$mq_function.".css");
+								$uses = $this->useFn($mqFunction);
+								if($uses == 1 && file_exists(dirname(__FILE__)."/mqStyles/".$mqFunction.".css"))
+									$this->ManialinkAnalizer->addStyleSheet(dirname(__FILE__)."/mqStyles/".$mqFunction.".css");
 								try {
-									$new = call_user_func_array($mq_function, $parameters);
+									$new = call_user_func_array($mqFunction, $parameters);
 								} catch (\Exception $e) {
 									throw new \Exception($e->getMessage(), 1);
 								}
@@ -271,7 +269,7 @@ class ManiaQuery
 			$value = trim($value);
 		if (!preg_match('/^\$/', trim($value))) {
 			// $value = preg_replace('/^(\"|\')(.*)\1$/', '\2', $value);
-			if(is_numeric($value)) {
+			if (is_numeric($value)) {
 				if(preg_match('/\./', $value))
 					$value = (double) $value;
 				else
@@ -295,12 +293,12 @@ class ManiaQuery
 	 * Increases the use-counter of a function.
 	 * @return int Number of uses of the function.
 	 */
-	private function useFn($mq_function) {
-		if(!array_key_exists($mq_function, $this->calledFunctions))
-			$this->calledFunctions[$mq_function] = 1;
+	private function useFn($mqFunction) {
+		if(!array_key_exists($mqFunction, $this->calledFunctions))
+			$this->calledFunctions[$mqFunction] = 1;
 		else
-			$this->calledFunctions[$mq_function]+=1;
-		return $this->calledFunctions[$mq_function];
+			$this->calledFunctions[$mqFunction]+=1;
+		return $this->calledFunctions[$mqFunction];
 	}
 
 	/**
@@ -321,12 +319,10 @@ class ManiaQuery
 			if($matches[0] == null)
 				return array();
 			return $matches;
-		}
-		elseif (preg_match('/\((\"|\')\.(.*)\1\)/', $selector, $match)) {
+		} elseif (preg_match('/\((\"|\')\.(.*)\1\)/', $selector, $match)) {
 			$type = "class";
 			return $this->ManialinkAnalizer->getElementsByClass($match[2]);
-		}
-		elseif (preg_match('/\((\"|\')(.*)\1\)/', $selector, $match)) {
+		} elseif (preg_match('/\((\"|\')(.*)\1\)/', $selector, $match)) {
 			$type = "class";
 			return $this->ManialinkAnalizer->getElementsByTag($match[2]);
 		}
@@ -345,7 +341,8 @@ class ManiaQuery
 	/**
 	 * @return the ManiscriptHandler for further access.
 	 */
-	public function scriptHandler() {
+	public function scriptHandler()
+	{
 		return $this->MScript;
 	}
 
@@ -354,7 +351,8 @@ class ManiaQuery
 	 * ManialinkElement with the modified version.
 	 * @param \ManialinkAnalysis\ManialinkElement $element
 	 */
-	public function updateElement($element) {
+	public function updateElement($element)
+	{
 		$this->ManialinkAnalizer->updateElement($element);
 	}
 
@@ -364,15 +362,19 @@ class ManiaQuery
 	 * @param string $code xml code to be appended.
 	 * @param string $id see method description :P
 	 */
-	public function append($code, $id = false) {
+	public function append($code, $id = false)
+	{
 		$this->ManialinkAnalizer->append($code, $id);
 	}
 
-	private function prepareAttributes(&$attributes) {
+	private function prepareAttributes(&$attributes)
+	{
 		if (!empty($attributes) && is_array($attributes)) {
 			foreach ($attributes as $key=>$attribute) {
 				$attribute = preg_replace('/^function\(([^)]*)\)\s*?\{(.*)}$/s', '\2', trim($attribute));
 				$attribute = trim($attribute);
+				if(!empty($attribute) && !preg_match('/\}|;$/', $attribute))
+					$attribute .= ";";
 				$attributes[$key] = $attribute;
 			}
 		}
@@ -382,7 +384,8 @@ class ManiaQuery
 	 * Returns how often the function has been called. Note that binding a function on a selector matching
 	 * multiple elements is respectively.
 	 */
-	public function getUses($function) {
+	public function getUses($function)
+	{
 		if (array_key_exists($function, $this->calledFunctions))
 			return $this->calledFunctions[$function];
 		return 0;
@@ -392,7 +395,8 @@ class ManiaQuery
 	 * @param string Object in javascript notation
 	 * @return \StdClass Object of an object in javascript notation (fixing some errors of json_decode)
 	 */
-	public static function jsobj2php($obj) {
+	public static function jsobj2php($obj)
+	{
 		return ManiaqueryParser::parseObj($obj);
 		/* $obj = preg_replace('/^(\s*)?(\w+): /m', '"\2": ', $obj);
 		$obj = preg_replace('/;$/s', '', $obj);
@@ -403,12 +407,13 @@ class ManiaQuery
 	 * @param \StdClass Php object to encode
 	 * @return string Adjusted version of json_encode
 	 */
-	public static function obj2str($obj) {
+	public static function obj2str($obj)
+	{
 		$str = json_encode($obj);
-		$str = preg_replace('/\"([^\"]*)\":/','\1: ', $str);
+		$str = preg_replace('/\"([^\"]*)\":/', '\1: ', $str);
 		$str = preg_replace('/\"(function\(([^)]*)\)\s*?\{(.*)})\"/s', '\1', trim($str));
 		preg_match_all('/\"(\[(.*)\])\"/s', $str, $arrays, PREG_SET_ORDER);
-		foreach($arrays as $a) {
+		foreach ($arrays as $a) {
 			$str = str_replace($a[0], '['.stripslashes($a[2]).']', $str);
 		}
 		$str = str_replace(array('\n', '\t', '\r'), '', $str);
@@ -417,8 +422,7 @@ class ManiaQuery
 
 	private function varDefined($variable, $pos){
 		foreach ($this->variables as $key=>$var) {
-			if($var["name"] == $variable && ($var["init"] < $pos || $pos < 0))
-			{
+			if ($var["name"] == $variable && ($var["init"] < $pos || $pos < 0)) {
 				return $key;
 			}
 		}
@@ -429,14 +433,15 @@ class ManiaQuery
 /**
  * Somehow required, didn't want to adjust stuff :D
  */
-function is_in_array($array,$index){
-	if (is_array($array)){
-		if (array_key_exists($index,$array)){
+function is_in_array($array, $index)
+{
+	if (is_array($array)) {
+		if (array_key_exists($index, $array)) {
 			return false;
-		}else{
+		} else {
 			return true;
 		}
-	}else{
+	} else {
 		return true;
 	}
 }
