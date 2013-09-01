@@ -300,7 +300,9 @@ class ManialinkAnalizer
 	 */
 	public function output($return = false)
 	{
-		$result = str_replace('</manialink>', "<script>\n<!--\n" . $this->Maniascript->build() . "\n--></script>\n</manialink>", $this->mlData);
+		$result = $this->mlData;	
+		$result = preg_replace('/<manialink.*?>(.*?\/timeout>)?/', "$0".$this->Maniascript->buildConstraints(), $result);
+		$result = str_replace('</manialink>', "<script><!--\n" . $this->Maniascript->build() . "\n--></script>\n</manialink>", $result);
 		$result = $this->replaceShapes($result);
 		if($return)
 			return $result;

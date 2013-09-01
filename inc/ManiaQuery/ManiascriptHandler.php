@@ -16,6 +16,8 @@ class ManiascriptHandler extends Maniascript
 	private $manialinkAnalizer;
 	private $declaredElements = array();
 
+	private $constraints = array();
+
 	/**
 	 * Handles the Maniascript in the project.
 	 *
@@ -53,6 +55,7 @@ class ManiascriptHandler extends Maniascript
 				$fn = "";
 			$this->addCodeBeforeMain($fn);
 		}
+		$this->setConstraints(array("Include"=>array(array('"MathLib"', 'MathLib'), array('"TextLib"', 'TextLib'))));
 	}
 
 	/**
@@ -83,33 +86,50 @@ class ManiascriptHandler extends Maniascript
 		return $elementId;
 	}
 
-	public function hover($manialinkElement, $in, $out = false)
+	/**
+	 * adds constraits to render later on
+	 * @param {array} $constraints [ConstraitType=>[[parameter, parameter]]]
+	 */
+	public function setConstraints($constraints)
 	{
-		$elementId = $this->addListener($manialinkElement);
-		if($manialinkElement->get("id") === null)
-			$manialinkElement->set("id", $elementId);
-		if ($in instanceof ManiascriptFunction) {
-			$this->addFunction($in->getType(), $in->getName(), $in->getBody(), implode(', ', $in->getArguments()));
-			$todo = $in->getName() . "()\n";
-		} else
-			$todo = $in;
-		$this->addMouseOverEvent($manialinkElement->get("id"), $todo);
-		if ($out !== false) {
-			if ($out instanceof ManiascriptFunction) {
-				$this->addFunction(
-					$out->getType(),
-					$out->getName(),
-					$out->getBody(),
-					implode(', ', $out->getArguments())
-				);
-				$todo = $out->getName() . "()\n";
-			} else
-				$todo = $out;
-			$this->addMouseOutEvent($manialinkElement->get("id"), $todo);
-		}
-		$this->manialinkAnalizer->updateElement($manialinkElement);
-		return $this;
+		$this->constraints = array_merge_recursive($this->constraints, $constraints);
+	}
 
+	/**
+	 * Renders all given constraits, includes custom libraries
+	 * @return {string} script tag containing the includes
+	 */
+	public function buildConstraints()
+	{
+		$included = array();
+		$consts = array();
+		$contexts = array();
+		$settings = array();
+		$stack = array("Include"=>array("included", 1, " as "),
+					   "Const"=>array("consts", 1, " "),
+					   "RequiredContext"=>array("contexts", 0, false),
+					   "Setting"=>array("settings", 1, " "));
+		$result = "";
+		$includes = "";
+		foreach ($this->constraints as $type => $constraint) {
+			$array = $$stack[$type][0];
+			foreach ($constraint as $values) {
+				if (!array_key_exists($values[$stack[$type][1]], $array)) {
+					$array[$values[$stack[$type][1]]] = true;
+					if ($type == "Include" && !in_array(substr($values[0], 1, -1), array("MathLib", "TextLib", "MapUnits"))) {
+						$includes.='<include url="./inc/ManiaQuery/msLib/incLib.php?path='.substr($values[0], 1, -1).'" />';
+						$libname = basename(substr($values[0], 1, -1));
+						$this->addReplace(array("/" . $values[1] . "::/", $libname . "_"));
+					} else {
+					$result .= "#" . $type . " " . 
+								($stack[$type][2] ? implode($stack[$type][2], $values) : $values) . 
+								" " . PHP_EOL;
+					}
+				}
+			}
+		}
+		if (!empty($result)) $result = '<script><!--' . $result . '--></script>';
+		return $result . $includes;
 	}
 
 	/**

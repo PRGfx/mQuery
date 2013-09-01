@@ -59,6 +59,10 @@ class ManiaQuery
 		$ManiaqueryParser = new ManiaqueryParser($this->input);
 		$ManiaqueryParser->parse();
 
+		// constraints
+		$constraints = $ManiaqueryParser->getConstraints();
+		$this->MScript->setConstraints($constraints);
+
 		// variables
 		$variables = array();
 		$variables = $ManiaqueryParser->getVariables();

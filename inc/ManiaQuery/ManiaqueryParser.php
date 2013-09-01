@@ -4,6 +4,8 @@ namespace ManiaQuery;
 class ManiaqueryParser
 {
 
+	private $CONSTRAINTS = array("Include", "Setting", "Const", "RequiredContext");
+
 	private $in;
 
 	private $bracketRound = 0;
@@ -14,6 +16,8 @@ class ManiaqueryParser
 	private $strings = array();
 	private $variables = array();
 	private $jqueryStacks = array();
+	
+	private $constraints = array();
 
 	public function __construct($input)
 	{
@@ -74,7 +78,7 @@ class ManiaqueryParser
 						$this->bracketCurly++;
 					if ($char == "}")
 						$this->bracketCurly--;
-					// search for jquery stacks
+					// parse that shit out of it
 					switch ($state) {
 						case '0':
 							$match = array();
@@ -95,7 +99,7 @@ class ManiaqueryParser
 								$match["global"] = false;
 								$state = "v1";
 							}
-							if (preg_match('/[gv]/', $char)) {
+							if (preg_match('/[gv]/', $char) ? true : false) {
 								$match["name"] = "";
 								$match["value"] = "";
 								$match["type"] = "";
@@ -297,7 +301,7 @@ class ManiaqueryParser
 								$match["value"].= $char;
 							break;
 						default:
-							echo ' something somewhere went terribly wrong!<br/>';
+							echo ' something somewhere went terribly wrong! ('.$state.')<br/>';
 					}
 					// continue;
 				}
@@ -348,6 +352,28 @@ class ManiaqueryParser
 	public function getStrings()
 	{
 		return $this->strings;
+	}
+
+	public function getConstraints()
+	{
+		$this->constraints = array();
+		preg_match_all('/#Include (.*?) as (.*?)(\s|\n|\r)/', $this->in, $includes, PREG_SET_ORDER);
+		preg_match_all('/#Const (.*?) (.*?)(\s|\n|\r)/', $this->in, $const, PREG_SET_ORDER);
+		preg_match_all('/#Setting (.*?) (.*?)(\s|\n|\r)/', $this->in, $setting, PREG_SET_ORDER);
+		preg_match_all('/#RequiredContext (.*?)(\s|\n|\r)/', $this->in, $context, PREG_SET_ORDER);
+		foreach ($includes as $inc) {
+			$this->constraints["Include"][] = array($inc[1], $inc[2]);
+		}
+		foreach ($const as $c) {
+			$this->constraints["Const"][] = array($c[1], $c[2]);
+		}
+		foreach ($setting as $s) {
+			$this->constraints["Setting"][] = array($s[1], $s[2]);
+		}
+		foreach ($context as $c) {
+			$this->constraints["RequiredContext"][] = $c[1];
+		}
+		return $this->constraints;
 	}
 
 	public static function parseObj($string)

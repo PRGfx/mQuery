@@ -213,8 +213,8 @@ class Maniascript
 	public function build($return = true)
 	{
 		
-		$this->finalResult.='#Include "TextLib" as TextLib ' . "\n";
-		$this->finalResult.='#Include "MathLib" as MathLib ' . "\n";
+		// $this->finalResult.='#Include "TextLib" as TextLib ' . "\n";
+		// $this->finalResult.='#Include "MathLib" as MathLib ' . "\n";
 		if (is_array($this->globalVariables)) {
 			foreach ($this->globalVariables as $name=>$dataType) {
 				$this->finalResult.="declare ".$dataType." ".$name.";\n";
