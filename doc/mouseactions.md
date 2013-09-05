@@ -29,7 +29,7 @@ Examples
 $(".clickable").mouseover(function(){
 	$this.PosnX -= 10;
 }).click(function(){
-	$this.PosnX = 50;
+	$this.PosnX = 50.;
 	log("Position reset.");
 });
 ```
