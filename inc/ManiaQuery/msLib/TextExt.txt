@@ -58,7 +58,7 @@ Text TextExt_TrimR(Text string)
 		|| TextExt_CharAt(string, i) == "\t") {
 		i -= 1;
 	}
-	return TextLib::SubString(string, 0, i);
+	return TextLib::SubString(string, 0, i + 1);
 }
 Text TextExt_Trim(Text string)
 {
@@ -201,6 +201,40 @@ Boolean TextExt_StartsWith(Text string, Text start)
 Boolean TextExt_EndsWith(Text string, Text end)
 {
 	return TextLib::SubString(string, TextLib::Length(string) - TextLib::Length(end), TextLib::Length(end)) == end;
+}
+Text TextExt_Replace(Text search, Text replace, Text subject, Integer count)
+{
+	declare Integer toRun = count;
+	declare Integer slen = TextLib::Length(search);
+	declare Text result = subject;
+	declare Integer start;
+	while (toRun >= 0 || (count < 0 && TextExt_StrPos(result, search) > 0)) {
+		toRun -= 1;
+		start = TextExt_StrPos(result, search);
+		result = TextLib::SubString(result, 0, start) ^ replace ^ TextLib::SubString(result, start + slen, TextLib::Length(result));
+	}
+	return result;
+}
+Text TextExt_Replace(Text search, Text replace, Text subject)
+{
+	return TextExt_Replace(search, replace, subject, -1);
+}
+Text TextExt_Replace(Text[] search, Text[] replace, Text subject)
+{
+	declare Text result = subject;
+	assert(search.count == replace.count);
+	foreach (k=>v in search) {
+		result = TextExt_Replace(v, replace[k], result);
+	}
+	return result;
+}
+Text TextExt_Replace(Text[] search, Text replace, Text subject)
+{
+	declare Text[] repl;
+	for (i, 1, search.count) {
+		repl.add(replace);
+	}
+	return TextExt_Replace(search, repl, subject);
 }
 
 Real TextExt_Levenshtein(Text word1, Text word2)

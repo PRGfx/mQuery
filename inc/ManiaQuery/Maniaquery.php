@@ -91,8 +91,10 @@ class ManiaQuery
 					foreach ($elements as $key => $element) {
 						$varN = "mqAutoDec_" . $selectorContent . $key;
 						$declared[] = $varN;
-						if($element->get("id")==null)
+						if ($element->get("id")==null) {
 							$element->set("id", $varN);
+							$this->ManialinkAnalizer->updateElement($element);
+						}
 						$scriptHandler->addCodeToMain($element->getManiaScriptDeclare($varN));
 					}
 					$value = ' = ['.implode(', ', $declared).'];';
@@ -100,7 +102,7 @@ class ManiaQuery
 					$element = $elements[0];
 					$varN = "mqAutoDec_" . $selectorContent;
 					$type = "CMlControl";
-					if($element->get("id")==null)
+					if($element->get("id") == null)
 						$element->set("id", $varN);
 					$value = explode('<=>', $element->getManiaScriptDeclare($var["name"]));
 					$value = ' <=> ' . trim($value[1]);
@@ -316,20 +318,87 @@ class ManiaQuery
 	{
 		$matches = array();
 		$type = "tag";
-		$selector = preg_replace('/^\$/', '', $selector);
-		if (preg_match('/\((\"|\')#(.*)\1\)/', $selector, $match)) {
-			$type = "id";
-			$matches[0] = $this->ManialinkAnalizer->getElementById($match[2]);
-			if($matches[0] == null)
-				return array();
-			return $matches;
-		} elseif (preg_match('/\((\"|\')\.(.*)\1\)/', $selector, $match)) {
-			$type = "class";
-			return $this->ManialinkAnalizer->getElementsByClass($match[2]);
-		} elseif (preg_match('/\((\"|\')(.*)\1\)/', $selector, $match)) {
-			$type = "class";
-			return $this->ManialinkAnalizer->getElementsByTag($match[2]);
+		$selector = preg_replace('/^\$\((\"|\')(.*)\1\)$/', '\2', trim($selector));
+		$selectors = explode(',', $selector);
+		foreach ($selectors as $selector) {
+			$value = explode(':', trim($selector), 2);
+			$selector = $value[0];
+			$found = array();
+			switch (substr($selector, 0, 1)) {
+				case '#':
+					$element = $this->ManialinkAnalizer->getElementById(substr($selector, 1));
+					if ($element !== null)
+						$matches[] = $element;
+					$type = "id";
+					break;
+				case '.':
+					$found = $this->ManialinkAnalizer->getElementsByClass(substr($selector, 1));
+					$type = "class";
+					break;
+				default:
+					$found = $this->ManialinkAnalizer->getElementsByTag($selector);
+					break;
+			}
+			if (count($value) > 1)
+				$found = $this->filterMatches($found, $value[1]);
+			$matches = array_merge($matches, $found);
 		}
+		return $matches;
+	}
+
+	/**
+	 * Filters a given set of matched elements
+	 * @param  Array $matches The matched elements getting filtered
+	 * @param  String $filter  Available filters are:
+	 *                         eq(index), eq(-index)
+	 *                         gt(index), gt(-index)
+	 *                         lt(index), lt(-index)
+	 *                         odd, even
+	 *                         first, last
+	 *                         (all indeces are zero-based)
+	 * @return Array          Filtered array of matched elements
+	 */
+	private function filterMatches($matches, $filter)
+	{
+		if (count($matches) < 1) {
+			return $matches;
+		}
+		$result = array();
+		if (preg_match('/^eq\((-?[0-9]+)\)/', $filter, $offset)) {
+			$offset = $offset[1];
+			if (count($matches) > abs($offset)) {
+				if ($offset < 0)
+					$offset = count($matches) - 1 + $offset;
+				$result[] = $matches[$offset];
+			}
+		} elseif (preg_match('/^gt\((-?[0-9]+)\)/', $filter, $offset)) {
+			$offset = $offset[1] + 1;
+			if ($offset < 0)
+				$offset = count($matches) - 1 + $offset;
+			$result = array_slice($matches, $offset);
+		} elseif (preg_match('/^lt\((-?[0-9]+)\)/', $filter, $offset)) {
+			$offset = $offset[1];
+			$start = 0;
+			if ($offset < 0)
+				$start = count($matches) - 1 + $offset;
+			foreach ($matches as $key => $value) {
+				if ($key >= $start && ($key < $offset || $offset < 0))
+					$result[] = $value;
+			}
+		} elseif (preg_match('/^(odd|even)/', $filter, $type)) {
+			$type[1]=="odd"?$x=1:$x=0;
+			foreach ($matches as $key => $value) {
+				if ($key % 2 == $x)
+					$result[] = $value;
+			}
+		} elseif ($filter == "first") {
+			$result[] = $matches[0];
+		} elseif ($filter == "last") {
+			$result[] = $matches[count($matches) - 1];
+		} else {
+			$result = $matches;
+		}
+		return $result;
 	}
 
 	/**

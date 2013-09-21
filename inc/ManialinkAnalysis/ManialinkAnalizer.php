@@ -206,7 +206,9 @@ class ManialinkAnalizer
 		}
 		if(!$this->isTag($old))
 			$old = $this->getElementById($old)->toString;
-		$this->mlData = str_replace($old, $new, $this->mlData);
+		// var_dump(addcslashes($old, "\"'/()"));
+		$this->mlData = preg_replace('/'.addcslashes($old, "\"'/()").'/', $new, $this->mlData, 1);
+		// $this->mlData = str_replace($old, $new, $this->mlData);
 		return $this;
 	}
 
@@ -273,6 +275,8 @@ class ManialinkAnalizer
 							$query.= "&amp;" . $attribute . "=" . strtolower($value);
 							break;
 						case "posn":
+						case "halign":
+						case "valign":
 						case "class":
 						case "id":
 						case "manialink":

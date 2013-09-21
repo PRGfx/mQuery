@@ -17,6 +17,11 @@ class ManialinkElement
 
 	private $toAppend;
 
+	private $defaultValue = array("posn" => "0 0 0", 
+								  "sizen" => "80 80",
+								  "halign" => "left",
+								  "valign" => "top");
+
 	public function __construct($string)
 	{
 		$this->initial = $string;
@@ -261,7 +266,8 @@ class ManialinkElement
 		foreach ($this->attributes as $key => $value) {
 			if (!empty($value) && !preg_match('/border/', $key)) {
 				$value = preg_replace('/ \!important$/', "", $value);
-				$output.=$key . "=\"" . $value . "\" ";
+				if (!array_key_exists($key, $this->defaultValue) || $value != $this->defaultValue[$key])
+					$output.=$key . "=\"" . $value . "\" ";
 			}
 		}
 		if ($this->type!="frame") {

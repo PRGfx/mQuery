@@ -54,6 +54,13 @@ Returns whether or not the *string* begins with the second parameter.
 **Boolean TextExt_EndsWith(Text string, Text end)**
 Returns whether or not the *string* ends with the second parameter.  
 
+**Text TextExt_Replace(Text search, Text replace, Text subject[, Integer occurences])**  
+Replaces *search* with *replace* in the string *subject* *occurences* times, normally replaces every occurence.  
+**Text TextExt_Replace(Text[] search, Text[] replace, Text subject)**  
+Replaces every string in *search* with the word at same index in *replace*. **Note**, that *search* and *replace* have to be of the same length!  
+**Text TextExt_Replace(Text[] search, Text replace, Text subject)**  
+Replaces every string in *search* with *replace*.  
+
 **Real TextExt_Levenshtein(Text word1, Text word2)**
 Returns the levenshtein distance between the two words. The library uses cost of 1 for insert, replace and remove.  
 **Text[] TextExt_Levenshtein(Text input, Text[] p)**  

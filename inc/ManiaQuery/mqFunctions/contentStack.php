@@ -60,14 +60,18 @@ function mq_contentStack($handler, $manialinkElement, $options = false)
 		$scriptHandler->declareMainVariable('Boolean', $usesRand, true, ($options->random?"True":"False"));
 		$scriptHandler->declareGlobalVariable('Integer', $currentIndex);
 		$scriptHandler->declareMainVariable('Integer', $currentIndex, true, $options->start);
-		$scriptHandler->declareGlobalVariable($manialinkElement->getManiaScriptType() . '[Integer]', $contentStack);
 		// $scriptHandler->declareMainVariable($manialinkElement->getManiaScriptType() . '[Integer]', $contentStack, true, $elementId);
-		$scriptHandler->addCodeToMain('declare '.$manialinkElement->getManiaScriptType() . '[Integer] ' . $contentStack .' for Page = [0=>'.$elementId.'];');
+		
+		// $scriptHandler->declareGlobalVariable($manialinkElement->getManiaScriptType() . '[Integer]', $contentStack);
+		// $scriptHandler->addCodeToMain('declare '.$manialinkElement->getManiaScriptType() . '[Integer] ' . $contentStack .' for Page = [0=>'.$elementId.'];');
+		
+		$scriptHandler->declareGlobalVariable('CMlControl[Integer]', $contentStack);
+		$scriptHandler->addCodeToMain('declare CMlControl[Integer] ' . $contentStack .' for Page = [0=>'.$elementId.'];');
 	}
-	if($manialinkElement->getManiaScriptType() != $type) {
-		throw new \Exception("The assigned manialink elements are not of the same type! Expected was '".$type."'.", 1);
-		return false;
-	}
+	// if($manialinkElement->getManiaScriptType() != $type) {
+	// 	throw new \Exception("The assigned manialink elements are not of the same type! Expected was '".$type."'.", 1);
+	// 	return false;
+	// }
 	if(!$primUse) {
 		$n = $jsu[$options->group]-1;
 		$scriptHandler->addCodeToMain('
@@ -100,7 +104,8 @@ function mq_contentStack($handler, $manialinkElement, $options = false)
 			'.$options->function.'("next");
 		}
 		');
-	$fn = 'declare '.$manialinkElement->getManiaScriptType() . '[Integer] ' . $contentStack .' for Page;
+	// $fn = 'declare '.$manialinkElement->getManiaScriptType() . '[Integer] ' . $contentStack .' for Page;
+	$fn = 'declare CMlControl[Integer] ' . $contentStack .' for Page;
 	declare Integer '.$currentIndex.' for Page;
 	declare Boolean '.$usesRand.' for Page;
 	declare Boolean '.$playPause.' for Page;
