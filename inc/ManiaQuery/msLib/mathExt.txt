@@ -1,0 +1,48 @@
+Real mathExt_max(Real arg1, Real arg2) {
+	if (arg1 > arg2) return arg1;
+	return arg2;
+}
+Real mathExt_min(Real arg1, Real arg2) {
+	if (arg1 < arg2) return arg1;
+	return arg2;
+}
+Integer mathExt_max(Integer arg1, Integer arg2) {
+	if (arg1 > arg2) return arg1;
+	return arg2;
+}
+Integer mathExt_min(Integer arg1, Integer arg2) {
+	if (arg1 < arg2) return arg1;
+	return arg2;
+}
+Real mathExt_max3(Real arg1, Real arg2, Real arg3) {
+	if (arg1 > arg2 && arg1 > arg3) return arg1;
+	if (arg2 > arg1 && arg2 > arg3) return arg2;
+	return arg3;
+}
+Real mathExt_min3(Real arg1, Real arg2, Real arg3) {
+	if (arg1 < arg2 && arg1 < arg3) return arg1;
+	if (arg2 < arg1 && arg2 < arg3) return arg2;
+	return arg3;
+}
+Real mathExt_max3(Vec3 arg) {
+	return mathExt_max3(arg[0], arg[1], arg[2]);
+}
+Real mathExt_min3(Vec3 arg) {
+	return mathExt_min3(arg[0], arg[1], arg[2]);
+}
+Integer mathExt_max3(Integer arg1, Integer arg2, Integer arg3) {
+	if (arg1 > arg2 && arg1 > arg3) return arg1;
+	if (arg2 > arg1 && arg2 > arg3) return arg2;
+	return arg3;
+}
+Integer mathExt_min3(Integer arg1, Integer arg2, Integer arg3) {
+	if (arg1 < arg2 && arg1 < arg3) return arg1;
+	if (arg2 < arg1 && arg2 < arg3) return arg2;
+	return arg3;
+}
+Integer mathExt_max3(Int3 arg) {
+	return mathExt_max3(arg[0], arg[1], arg[2]);
+}
+Integer mathExt_min3(Int3 arg) {
+	return mathExt_min3(arg[0], arg[1], arg[2]);
+}
