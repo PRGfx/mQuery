@@ -48,12 +48,12 @@ class ManiaQuery
 	private function identifyFunctions() {
 		foreach (glob(dirname(__FILE__)."/mqFunctions/*.php") as $file)
 		{
-		    require_once($file);
-		    $d = file_get_contents($file);
-		    preg_match_all('/function mq_(\w+)/', $d, $names, PREG_SET_ORDER);
-		    foreach ($names as $fn) {
-		    	$this->availableFunctions[] = $fn[1];
-		    }
+			require_once($file);
+			$d = file_get_contents($file);
+			preg_match_all('/function mq_(\w+)/', $d, $names, PREG_SET_ORDER);
+			foreach ($names as $fn) {
+				$this->availableFunctions[] = $fn[1];
+			}
 		}
 		$scriptHandler = $this->MScript;
 		$ManiaqueryParser = new ManiaqueryParser($this->input);

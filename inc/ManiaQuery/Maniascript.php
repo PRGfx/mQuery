@@ -13,9 +13,11 @@ class Maniascript
 {
 	public $globalVariables = array();
 	public $functions = array();
+	public $anonFunctions = array();
 	public $mainVariables = array();
 	public $mainContent = array();
 	public $loopContent = array();
+	public $loopEndContent = array();
 	public $keyPressEvents = array();
 	public $mouseClickEvents = array();
 	public $mouseOverEvents = array();
@@ -26,6 +28,9 @@ class Maniascript
 	public $finalResult = "";
 	public $beforeMainContent = "";
 	private $replaces = array();
+	private $inlineUses = array();
+
+	private $built = false;
 	
 	/**
 	 * Declares a variable outside of every function. It will be declared 'for Page'.
@@ -52,14 +57,20 @@ class Maniascript
 	 * @param string $name The function's name.
 	 * @param string $content The function's body.
 	 * @param string $parameter Optional: Parameters for the function as you would write it for a ManiaScript function.
+	 * @param boolean $anon Whether or not this function is defined anonymously.
 	 * @throws Exception if there already is a function with this name.
 	 */
-	public function addFunction($dataType, $name, $content, $parameter="")
+	public function addFunction($dataType, $name, $content, $parameter="", $anon = false)
 	{
 		global $alert;
 		$arrayTest = is_in_array($this->functions, $name);
 		if ($arrayTest) {
-			$this->functions[$name] = array(ucfirst($dataType),$content,$parameter); 
+			if ($anon) {
+				$name = "anonFn" . (count($this->anonFunctions) + 1);
+				$this->anonFunctions[$name] = array("Void", $content, $parameter);
+			} else
+			$this->functions[$name] = array(ucfirst($dataType), $content, $parameter);
+			return $name;
 		} else {
 			throw new \Exception("The function ".$name." already exists!");
 		}
@@ -117,6 +128,16 @@ class Maniascript
 	public function addCodeToLoop($code)
 	{
 		$this->loopContent[] = $code;
+	}
+	
+	/**
+	 * Adds code at the end of the while(true) loop.
+	 *
+	 * @param string $code ManiaScript code to be added.
+	 */
+	public function addCodeToLoopEnd($code)
+	{
+		$this->loopEndContent[] = $code;
 	}
 	
 	/**
@@ -198,9 +219,102 @@ class Maniascript
 		$this->beforeMainContent.= $code;
 	}
 
-	public function addReplace(array $replacer)
+	public function addReplace(array $replacer, $direct = null)
 	{
-		$this->replaces[] = $replacer;
+		if ($direct == null) $direct = false;
+		$this->replaces[] = array($replacer, $direct);
+	}
+
+	private function replaceInlineMQ($code)
+	{
+		$mqInlineFunctions = array();
+		foreach (glob(dirname(__FILE__)."/mqInlineFunctions/*.php") as $file)
+		{
+		    require_once($file);
+		    $d = file_get_contents($file);
+		    preg_match_all('/function mq_in_(\w+)/', $d, $names, PREG_SET_ORDER);
+		    foreach ($names as $fn) {
+		    	$mqInlineFunctions[] = $fn[1];
+		    }
+		}
+		$inlineMQ = $this->findInlineMQ($code);
+		foreach ($inlineMQ as $function => $calls) {
+			if (in_array($function, $mqInlineFunctions)) {
+				foreach ($calls as $call) {
+					$mqFunction = "mq_in_" . $function;
+					$parameters = array_slice($call, 1);
+					try {
+						if (!array_key_exists($function, $this->inlineUses))
+							$this->inlineUses[$function] = 0;
+						$this->inlineUses[$function]++;
+						$new = call_user_func_array($mqFunction, array_merge(array($this), $parameters));
+						// $code = str_replace($call[0], $new, $code);
+						$this->addReplace(array($call[0], $new), true);
+					} catch (\Exception $e) {
+						throw new \Exception($e->getMessage(), 1);
+					}
+				}
+			}
+		}
+		// $anonFunctions = "";
+		// foreach ($this->anonFunctions as $name=>$content) {
+		// 	$anonFunctions .= $content[0]." ".$name."(".$content[2].") {".$content[1]."}";
+		// }
+		// $code = str_replace("###anonFunctions###", $anonFunctions, $code);
+		return $code;
+	}
+
+	public function getInlineUses($function) {
+		return $this->inlineUses[$function];
+	}
+
+	private function findInlineMQ($code)
+	{
+		$availableFunctions = array('get');
+		$results = array();
+		foreach ($availableFunctions as $function) {
+			$allposes = strallpos($code, '$.'.$function.'(');
+			if (count($allposes) > 0) {
+				$results[$function] = array();
+				foreach ($allposes as $pos) {
+					$fnEnd = false;
+					$stack = 1;
+					$isString = false;
+					$parameters = array("");
+					$parameter = "";
+					$i = $pos + strlen($function) + 3;
+					$raw = "\$.$function(";
+					while (!$fnEnd) {
+						$char = $code[$i];
+						$raw .= $char;
+						if ($char == "'" || $char == '"') {
+							if ($isString === false)
+								$isString = $char;
+							else
+								$isString = false;
+						}
+						if ($char == '(' && $isString === false) $stack++;
+						if ($char == ')' && $isString === false) $stack--;
+						if ($stack >= 1) {
+							if ($stack == 1 && $char == ",") {
+								$parameters[] = trim($parameter);
+								$parameter = "";
+							} else
+								$parameter .= $char;
+						} else {
+							if ($stack == 0 && $char == ";"){
+								$parameters[] = trim($parameter);
+								$fnEnd = true;
+							}
+						}
+						$i++;
+					}
+					$parameters[0] = $raw;
+					$results[$function][$pos] = $parameters;
+				}
+			}
+		}
+		return $results;
 	}
 	
 	/**
@@ -215,6 +329,7 @@ class Maniascript
 		
 		// $this->finalResult.='#Include "TextLib" as TextLib ' . "\n";
 		// $this->finalResult.='#Include "MathLib" as MathLib ' . "\n";
+		$this->finalResult.='declare Vec2[] _mousepath;declare Real _mouseTollerance; ';
 		if (is_array($this->globalVariables)) {
 			foreach ($this->globalVariables as $name=>$dataType) {
 				$this->finalResult.="declare ".$dataType." ".$name.";\n";
@@ -250,15 +365,59 @@ class Maniascript
 			
 			return False;
 		}
-		
-		';
-		if (is_array($this->functions)) {
-			foreach ($this->functions as $name=>$content) {
-				$this->finalResult.="".$content[0]." ".$name."(".$content[2].") {".$content[1]."}";
+		Real _max(Real a1, Real a2){if(a1>a2)return a1;return a2;}
+		Integer _max(Integer a1, Integer a2){if(a1>a2)return a1;return a2;}
+		Real _min(Real a1, Real a2){if(a1<a2)return a1;return a2;}
+		Integer _min(Integer a1, Integer a2){if(a1<a2)return a1;return a2;}
+		Text _getMousepath()
+		{
+			declare Text[] prout;
+			declare Real dX;
+			declare Real dY;
+			declare Real m;
+			declare Text step;
+			declare Integer j = 1;
+			for (i, 1, _mousepath.count - 1) {
+				step = "";
+				dX = _mousepath[i][0] - _mousepath[i-j][0];
+				dY = _mousepath[i][1] - _mousepath[i-j][1];
+				if (dX == 0) m = 0.0;
+				else m = MathLib::Abs(dY / dX);
+				if (_max(MathLib::Abs(dX), MathLib::Abs(dY)) > 2) {
+					j = 1;
+					if (dX > 0) step ^= "R";
+					if (dX < 0) step ^= "L";
+					if (dY > 0) step ^= "U";
+					if (dY < 0) step ^= "D";
+					/*if (dX > 0 && m < _mouseTollerance) step ^= "R";
+					if (dX < 0 && m < _mouseTollerance) step ^= "L";
+					if (dY > 0 && (1 - m) < _mouseTollerance) step ^= "U";
+					if (dY < 0 && (1 - m) < _mouseTollerance) step ^= "D";*/
+					if (prout.count == 0 || prout[prout.count - 1] != step) prout.add(step);
+					log("dX: " ^ TextLib::ToText(dX) ^ ", dY: " ^ TextLib::ToText(dY) ^ ", m: " ^ TextLib::ToText(m));
+				} else {
+					j += 1;
+				}
 			}
+			log(prout);
+			declare Text out = "";
+			for (i, 0, prout.count - 2) {
+				out ^= prout[i] ^ ";";
+			}
+			if (prout.count > 0) out ^= prout[_max(prout.count - 1, 0)];
+			return out;
 		}
-		
-		$this->finalResult.="main() {";
+		';
+		foreach ($this->functions as $name=>$content) {
+			$this->finalResult .= $content[0]." ".$name."(".$content[2].") {".$content[1]."}";
+		}
+
+		// $this->finalResult.="###anonFunctions###\n";
+		foreach ($this->anonFunctions as $name=>$content) {
+			$this->finalResult .= $content[0]." ".$name."(".$content[2].") {".$content[1]."}";
+		}
+	
+		$this->finalResult.="main() {_mouseTollerance=1.0;";
 		
 		if (is_array($this->mainVariables)) {
 			foreach ($this->mainVariables as $name=>$content) {
@@ -313,6 +472,12 @@ class Maniascript
 				}
 			}
 			$this->finalResult.='
+					_mousepath.add(<MouseX, MouseY>);
+						} else {
+					if (_mousepath.count > 1) {
+						/*log(_getMousepath());*/
+					}
+					_mousepath = Vec2[];
 						}';
 		}
 
@@ -418,18 +583,34 @@ class Maniascript
 					_timeoutBinders.removekey(_timeoutkey);
 				}
 			}";
+		if (is_array($this->loopEndContent)) {
+			foreach ($this->loopEndContent as $id=>$content) {
+				$this->finalResult.= $content;
+			}
+		}
 		$this->finalResult.="yield;
 		}}";
-	// $this->finalResult=str_replace(array("\r","\n"),array("",""),$this->finalResult);
-	// $this->finalResult = preg_replace('/\s+/', ' ', $this->finalResult);
-	foreach ($this->replaces as $replace) {
-	// var_dump($replace[0], $replace[1]);
-		$this->finalResult = preg_replace($replace[0].'s', $replace[1], $this->finalResult);
-	}
-	$this->timeoutSwitch();
-	if($return)
-		return $this->finalResult;
-	echo $this->finalResult;
+		// $this->finalResult=str_replace(array("\r","\n"),array("",""),$this->finalResult);
+		// $this->finalResult = preg_replace('/\s+/', ' ', $this->finalResult);
+		foreach ($this->replaces as $replacer) {
+			$replace = $replacer[0];
+			if (!$replacer[1])
+				$this->finalResult = preg_replace($replace[0].'s', $replace[1], $this->finalResult);
+			else
+				$this->finalResult = str_replace($replace[0], $replace[1], $this->finalResult);
+			// var_dump($replace[0], $replace[1]);
+		}
+		$this->timeoutSwitch();
+		if (!$this->built) {
+			$this->finalResult = $this->replaceInlineMQ($this->finalResult);
+			$this->built = true;
+			$this->finalResult = "";
+			return $this->build($return);
+		} else {
+			if($return)
+				return $this->finalResult;
+			echo $this->finalResult;
+		}
 	
 	}
 	
@@ -453,4 +634,19 @@ class Maniascript
 		$this->finalResult = str_replace("##timeoutSwitch##", $switchcases, $this->finalResult);
 	}
 }
+
+function strallpos($haystack, $needle, $offset = 0){
+    $result = array();
+    for($i = $offset; $i<strlen($haystack); $i++){
+        $pos = strpos($haystack,$needle,$i);
+        if($pos !== FALSE){
+            $offset =  $pos;
+            if($offset >= $i){
+                $i = $offset;
+                $result[] = $offset;
+            }
+        }
+    }
+    return $result;
+} 
 ?>
